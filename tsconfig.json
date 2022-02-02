@@ -1,10 +1,16 @@
 {
   "compilerOptions": {
-    "target": "es5",
-    "module": "commonjs",
-    "declaration": true,
-    "outDir": "./dist",
-    "strict": true
+    "module": "CommonJS",
+    "target": "ESNext",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "moduleResolution": "Node",
+    "resolveJsonModule": true,
+    "baseUrl": "src",
+    "skipLibCheck": true,
+    "importHelpers": true
   },
   "include": ["src"],
   "exclude": ["node_modules", "**/__tests__/*"]
