@@ -1,36 +1,65 @@
+import glob from 'glob';
 import assert from 'assert';
 import { join } from 'path';
 import { existsSync, lstatSync } from 'fs';
-import glob from 'glob';
 
-function extractIncludes(include: string[] = []) {
-  return include.reduce((entries, p: string) => {
-    const path = join(process.cwd(), p);
+export default class TSConfig {
+  private filePath: string;
+  config: any;
 
-    if (existsSync(path)) {
-      if (lstatSync(path).isDirectory()) {
-        const dir = glob.sync(`${path}/**/*.{ts,js}`);
-        entries.push(...dir);
-      } else {
-        entries.push(path);
+  constructor(filePath: string) {
+    this.filePath = filePath;
+    this.load();
+  }
+
+  load() {
+    const filePath = join(process.cwd(), this.filePath);
+    const config = require(filePath);
+
+    assert('include' in config, 'TSConfig include property is required');
+    assert('outDir' in config?.compilerOptions, 'TSConfig outDir is requred');
+
+    this.config = config;
+  }
+
+  files(): string[] {
+    return this.config.include.reduce((entries: string[], p: string) => {
+      const path = join(process.cwd(), p);
+
+      if (existsSync(path)) {
+        if (lstatSync(path).isDirectory()) {
+          const dir = glob.sync(`${path}/**/*.{ts,js}`);
+          entries.push(...dir);
+        } else {
+          entries.push(path);
+        }
       }
+
+      return entries;
+    }, []);
+  }
+
+  get compilerOptions() {
+    return this.config.compilerOptions;
+  }
+
+  get sourceMap() {
+    if (this.compilerOptions.inlineSourceMap) {
+      return 'inline';
     }
 
-    return entries;
-  }, [] as string[]);
-}
+    if (this.compilerOptions.sourceMap) {
+      return true;
+    }
 
-export default function tsconfig(file: string) {
-  const filePath = join(process.cwd(), file);
-  const config = require(filePath);
+    return false;
+  }
 
-  assert('include' in config, 'TypeScript config file does not have includes.');
-  assert('outDir' in config?.compilerOptions, 'TypeScript config file does not have outDir.');
+  get outDir(): string {
+    return this.compilerOptions.outDir;
+  }
 
-  return {
-    exclude: config.exclude ?? [],
-    include: extractIncludes(config.include),
-    dest: config.compilerOptions.outDir,
-    compilerOptions: config.compilerOptions
-  };
+  get paths() {
+    return this.compilerOptions.paths ?? {};
+  }
 }

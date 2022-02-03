@@ -1,13 +1,11 @@
 #! /usr/bin/env node
-
 import { Command } from 'commander';
-import register from './utils/register';
 
-(async function() {
-  const program = new Command();
-  program.version('0.0.1');
+const program = new Command();
 
-  await register(program);
-
-  program.parse();
-}());
+program
+  .version('0.0.1')
+  .command('build', 'build project')
+  .command('serve', 'serve project')
+  .command('lint', 'lint project')
+  .parse();
