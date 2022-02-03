@@ -23,9 +23,9 @@ const [ entry ] = program.args;
 const options: Options = program.opts();
 
 const tsconfig = new TSConfig(options.tsconfig);
-const server = new Server(entry);
 const build = new Build(tsconfig);
 const typeCheck = new TypeCheck(tsconfig);
+const server = new Server(entry);
 
 watch(tsconfig.config.include, () => {
   try {
