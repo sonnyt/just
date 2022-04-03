@@ -22,16 +22,21 @@ npm install -g @sonnyt/just
 ## Commands
 
 ### Build
-
 `just build`
+
+Compiles the application for production deployment.
 
 ### Dev
 
 `just dev`
 
+Starts the application in development mode.
+
 ### Run
 
 `just run`
+
+Runs typescript scripts.
 
 ## Programmatic
 You can include just runner outside of CLI programmatically.
