@@ -1,33 +1,50 @@
 import { Command } from 'commander';
+import color from 'colors/safe';
 
 import TSConfig from './utils/tsconfig';
-import Build from './utils/build';
-import TypeCheck from './utils/typecheck';
+import TypeChecker from './utils/typechecker';
+import Builder from './utils/builder';
 
 interface Options {
   tsconfig: string;
-  transpileOnly?: boolean;
+  transpileOnly: boolean;
+  color: boolean;
+  outDir?: string;
 }
 
 const program = new Command();
 
 program
-  .option('--transpile-only', 'Does not type check')
-  .option('-t, --tsconfig <tsconfig>', 'typescript configuration file', 'tsconfig.json')
+  .argument('[files]', 'files to compile')
+  .option('--transpile-only', 'disable type checking')
+  .option('--out-dir <outDir>', 'output folder for all emitted files')
+  .option('--no-color', 'output color')
+  .option(
+    '-t, --tsconfig <tsconfig>',
+    'typescript configuration file',
+    'tsconfig.json'
+  )
   .parse(process.argv);
 
+const [files] = program.args;
 const options: Options = program.opts();
 
-const tsconfig = new TSConfig(options.tsconfig);
-const build = new Build(tsconfig);
-const typeCheck = new TypeCheck(tsconfig);
+if (!options.color) {
+  color.disable();
+}
 
-try {
+const tsconfig = new TSConfig(options.tsconfig, false, files, options.outDir);
+const builder = new Builder(tsconfig);
+const typeChecker = new TypeChecker(tsconfig);
+
+(async () => {
   if (!options.transpileOnly) {
-    typeCheck.run();
+    typeChecker.start();
+
+    if (typeChecker.isFailed) {
+      return;
+    }
   }
 
-  build.run();
-} catch(err) {
-  console.error('[Just] Error:', err);
-}
+  await builder.build();
+})();

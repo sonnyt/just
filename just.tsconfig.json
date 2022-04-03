@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "module": "CommonJS",
+    "target": "ESNext",
+    "moduleResolution": "Node",
+    "inlineSourceMap": true,
+    "strict": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "importHelpers": true
+  },
+  "include": ["./"],
+  "exclude": ["node_modules"],
+  "outDir": "dist",
+  "paths": {}
+}

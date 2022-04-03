@@ -10,7 +10,8 @@
     "resolveJsonModule": true,
     "baseUrl": "src",
     "skipLibCheck": true,
-    "importHelpers": true
+    "importHelpers": true,
+    "strict": true,
   },
   "include": ["src"],
   "exclude": ["node_modules", "**/__tests__/*"]

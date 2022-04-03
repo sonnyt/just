@@ -1,46 +1,89 @@
 import glob from 'glob';
-import assert from 'assert';
-import { join } from 'path';
-import { existsSync, lstatSync } from 'fs';
+import dirGlob from 'dir-glob';
+import { resolve } from 'path';
+import { existsSync, readFileSync } from 'fs';
+import stripJsonComments from 'strip-json-comments';
+
+import { error, warning } from './logger';
 
 export default class TSConfig {
-  private filePath: string;
+  private _outDir?: string;
+  private _include: string[] | null;
+  private isSilenced: boolean;
+
+  filePath: string;
   config: any;
 
-  constructor(filePath: string) {
-    this.filePath = filePath;
+  constructor(
+    filePath: string,
+    silence: boolean = false,
+    include?: string,
+    outDir?: string
+  ) {
+    this._outDir = outDir;
+    this._include = include ? [include] : null;
+    this.filePath = resolve(process.cwd(), filePath);
+    this.isSilenced = silence;
+
     this.load();
   }
 
   load() {
-    const filePath = join(process.cwd(), this.filePath);
-    const config = require(filePath);
-
-    assert('include' in config, 'TSConfig include property is required');
-    assert('outDir' in config?.compilerOptions, 'TSConfig outDir is requred');
-
-    this.config = config;
-  }
-
-  files(): string[] {
-    return this.config.include.reduce((entries: string[], p: string) => {
-      const path = join(process.cwd(), p);
-
-      if (existsSync(path)) {
-        if (lstatSync(path).isDirectory()) {
-          const dir = glob.sync(`${path}/**/*.{ts,js}`);
-          entries.push(...dir);
-        } else {
-          entries.push(path);
-        }
+    if (!existsSync(this.filePath)) {
+      if (!this.isSilenced) {
+        warning('tsconfig.json file is missing, using default settings');
       }
 
-      return entries;
-    }, []);
+      this.filePath = resolve(__dirname, '..', '..', 'just.tsconfig.json');
+    }
+
+    try {
+      const file = readFileSync(this.filePath, 'utf-8');
+      const config = stripJsonComments(file.toString());
+      this.config = JSON.parse(config);
+    } catch {
+      error('failed to load the tsconfig.json file');
+    }
+  }
+
+  private dir(paths: string[] | string) {
+    return dirGlob.sync(paths, {
+      extensions: this.extensions,
+      cwd: process.cwd(),
+      files: ['*'],
+    });
+  }
+
+  get files(): string[] {
+    return this.include.flatMap((path: string) =>
+      glob.sync(path, { ignore: this.exclude })
+    );
   }
 
   get compilerOptions() {
     return this.config.compilerOptions;
+  }
+
+  get extensions() {
+    const extensions = ['ts', 'tsx', 'd.ts'];
+
+    if (this.allowJS) {
+      extensions.concat(['js', 'jsx']);
+    }
+
+    if (this.allowJSON) {
+      extensions.push('json');
+    }
+
+    return extensions;
+  }
+
+  get allowJS(): boolean {
+    return this.compilerOptions.allowJs;
+  }
+
+  get allowJSON(): boolean {
+    return this.compilerOptions.resolveJsonModule;
   }
 
   get sourceMap() {
@@ -55,11 +98,21 @@ export default class TSConfig {
     return false;
   }
 
-  get outDir(): string {
-    return this.compilerOptions.outDir;
+  get include(): string[] {
+    const paths = this._include ?? this.config.include ?? ['./'];
+    return this.dir(paths);
   }
 
-  get paths() {
-    return this.compilerOptions.paths ?? {};
+  get exclude(): string[] {
+    const paths = this.config.exclude ?? ['node_modules'];
+    return this.dir(paths);
+  }
+
+  get outDir(): string {
+    return this._outDir ?? this.compilerOptions.outDir;
+  }
+
+  get hasPaths() {
+    return Object.keys(this.compilerOptions.paths ?? {}).length > 0;
   }
 }
