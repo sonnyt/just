@@ -26,6 +26,9 @@ npm install -g @sonnyt/just
 
 Compiles the application for production deployment.
 
+**Arguments**
+- `files` - glob file path to compile. If not present, `includues` from tsconfig.json is used.
+
 **Options**
 |Option|Default|Description|
 |:--|:--|:--|
@@ -40,6 +43,9 @@ Compiles the application for production deployment.
 
 Starts the application in development mode.
 
+**Arguments**
+- `entry` - server entry path to start. If not present, `main` from package.json is used.
+
 **Options**
 |Option|Default|Description|
 |:--|:--|:--|
@@ -53,6 +59,10 @@ Starts the application in development mode.
 `just run [options] <command> [args...]`
 
 Runs typescript scripts.
+
+**Arguments**
+- `<command>` - script/command to run.
+- `[args...]` - arguments passed to script/command.
 
 **Options**
 |Option|Default|Description|
