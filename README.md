@@ -11,7 +11,7 @@ Zero config TypeScript build and development toolkit.
 - REPL support
 
 ## Install
-```
+```shell
 # Locally in your project.
 npm install -D @sonnyt/just
 
@@ -35,6 +35,6 @@ npm install -g @sonnyt/just
 
 ## Programmatic
 You can include just runner outside of CLI programmatically.
-```
+```shell
 node -r @sonnyt/just/register myscript.ts
 ```
