@@ -40,11 +40,25 @@ Compiles the application for production deployment.
 
 Starts the application in development mode.
 
+**Options**
+|Option|Default|Description|
+|---|---|---|
+|`-p, --port <port>`|null|server port used in `process.env.PORT`|
+|`--type-check`|false|enables type checking|
+|`--no-color`|off|disables output color|
+|`-t, --tsconfig <tsconfig>`|`tsconfig.json`|path to typescript configuration file. If not found default config will be used|
+
 ### Run
 
 `just run`
 
 Runs typescript scripts.
+
+**Options**
+|Option|Default|Description|
+|---|---|---|
+|`--no-color`|off|disables output color|
+|`-t, --tsconfig <tsconfig>`|`tsconfig.json`|path to typescript configuration file. If not found default config will be used|
 
 ## Programmatic
 You can include just runner outside of CLI programmatically.
