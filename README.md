@@ -28,7 +28,7 @@ Compiles the application for production deployment.
 
 **Options**
 |Option|Default|Description|
-|---|---|---|
+|:--|:--|:--|
 |`--transpile-only`|off|disables type checking|
 |`--out-dir <outDir>`|`compilerOptions.outDir`|output folder for all emitted files|
 |`--no-color`|off|disables output color|
@@ -42,7 +42,7 @@ Starts the application in development mode.
 
 **Options**
 |Option|Default|Description|
-|---|---|---|
+|:--|:--|:--|
 |`-p, --port <port>`|null|server port used in `process.env.PORT`|
 |`--type-check`|false|enables type checking|
 |`--no-color`|off|disables output color|
@@ -56,7 +56,7 @@ Runs typescript scripts.
 
 **Options**
 |Option|Default|Description|
-|---|---|---|
+|:--|:--|:--|
 |`--no-color`|off|disables output color|
 |`-t, --tsconfig <tsconfig>`|`tsconfig.json`|path to typescript configuration file. If not found default config will be used|
 
