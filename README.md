@@ -22,7 +22,7 @@ npm install -g @sonnyt/just
 ## Commands
 
 ### Build
-`just build`
+`just build [options] [files]`
 
 Compiles the application for production deployment.
 
@@ -36,7 +36,7 @@ Compiles the application for production deployment.
 
 ### Dev
 
-`just dev`
+`just dev [options] [entry]`
 
 Starts the application in development mode.
 
@@ -50,7 +50,7 @@ Starts the application in development mode.
 
 ### Run
 
-`just run`
+`just run [options] <command> [args...]`
 
 Runs typescript scripts.
 
