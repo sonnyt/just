@@ -26,6 +26,14 @@ npm install -g @sonnyt/just
 
 Compiles the application for production deployment.
 
+**Options**
+|Option|Default|Description|
+|---|---|---|
+|`--transpile-only`|off|disables type checking|
+|`--out-dir <outDir>`|`compilerOptions.outDir`|output folder for all emitted files|
+|`--no-color`|off|disables output color|
+|`-t, --tsconfig <tsconfig>`|`tsconfig.json`|path to typescript configuration file. If not found default config will be used|
+
 ### Dev
 
 `just dev`
