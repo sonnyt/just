@@ -43,3 +43,8 @@ You can include just runner outside of CLI programmatically.
 ```shell
 node -r @sonnyt/just/register myscript.ts
 ```
+
+## Roadmap
+- ESLint support
+- Prettier support
+- Smart type checking
