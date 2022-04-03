@@ -11,7 +11,7 @@ export default class Watcher {
     this.include = tsconfig.include;
   }
 
-  start(callback: () => void) {
+  start(callback: (...args: any) => Promise<void>) {
     this.watcher = watch(this.include, {
       persistent: true,
       ignoreInitial: true,
@@ -24,8 +24,25 @@ export default class Watcher {
       cwd: process.cwd(),
     });
 
-    this.watcher.on('all', callback);
-    this.watcher.on('ready', callback);
+    return new Promise((resolve, reject) => {
+      this.watcher?.on('all', async (...args) => {
+        try {
+          await callback(...args);
+          resolve(null);
+        } catch (err) {
+          reject(err);
+        }
+      });
+
+      this.watcher?.on('ready', async () => {
+        try {
+          await callback();
+          resolve(null);
+        } catch (err) {
+          reject(err);
+        }
+      });
+    });
   }
 
   stop() {

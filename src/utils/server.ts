@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from 'fs';
 import { resolve } from 'path';
 import stripJsonComments from 'strip-json-comments';
 
-import { timer, event, wait, error } from './logger';
+import { timer, event, wait, error, info } from './logger';
 import TSConfig from './tsconfig';
 
 export default class Server {
@@ -20,17 +20,15 @@ export default class Server {
   }
 
   private get options(): ForkOptions {
-    const modules = resolve(__dirname, '..', '..', 'node_modules');
-
     const options = [
       process.env['NODE_OPTIONS'],
       `-r ${__dirname}/transpiler.js`,
-      `-r ${modules}/dotenv/config`,
+      `-r ${require.resolve('dotenv/config')}`,
       '--no-warnings',
     ];
 
     if (this.tsconfig.hasPaths) {
-      options.push(`-r ${modules}/tsconfig-paths/register`);
+      options.push(`-r ${require.resolve('tsconfig-paths/register')}`);
     }
 
     const NODE_OPTIONS = options.filter((option) => !!option).join(' ');
@@ -61,11 +59,9 @@ export default class Server {
     }
   }
 
-  get entryExists() {
-    return existsSync(this.entry);
-  }
-
   static findEntryPath() {
+    info('entry path is not provided, using "main" in package.json');
+
     const packageFilePath = resolve(process.cwd(), 'package.json');
     let entry;
 
@@ -77,6 +73,18 @@ export default class Server {
     }
 
     return entry;
+  }
+
+  validate() {
+    if (!this.entry) {
+      error('cannot find entry path');
+      throw new Error('cannot find entry path');
+    }
+
+    if (!existsSync(this.entry)) {
+      error('entry file not found');
+      throw new Error('entry file not not found');
+    }
   }
 
   run(command: string, args: string[]) {

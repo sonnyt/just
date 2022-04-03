@@ -10,8 +10,6 @@ export default class Builder {
   private tsconfig: TSConfig;
   private builder?: BuildIncremental;
 
-  isFailed = false;
-
   constructor(tsconfig: TSConfig) {
     this.tsconfig = tsconfig;
   }
@@ -44,7 +42,6 @@ export default class Builder {
       const time = timer();
       time.start('building...');
 
-      this.isFailed = false;
       this.clean();
 
       await build(this.options);
@@ -58,10 +55,8 @@ export default class Builder {
 
       time.end('build successfully', `(${this.tsconfig.files.length} modules)`);
     } catch (err) {
-      console.log(err);
-
-      this.isFailed = true;
       error('build failed');
+      throw err;
     }
   }
 
@@ -70,13 +65,11 @@ export default class Builder {
       const time = timer();
       time.start('building...');
 
-      this.isFailed = false;
+      this.clean();
 
       if (this.builder) {
-        await this.rebuild();
+        this.builder = await this.rebuild();
       } else {
-        this.clean();
-
         this.builder = await build({
           ...this.options,
           incremental: true,
@@ -84,14 +77,14 @@ export default class Builder {
       }
 
       time.end('build successfully');
-    } catch {
-      this.isFailed = true;
+    } catch (err) {
       error('build failed');
+      throw err;
     }
   }
 
   rebuild() {
-    if (!this.builder?.stop) {
+    if (!this.builder) {
       return;
     }
 

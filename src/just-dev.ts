@@ -32,48 +32,49 @@ program
 const [entry] = program.processedArgs;
 const options: Options = program.opts();
 
-if (!options.color) {
-  color.disable();
+async function main() {
+  try {
+    // disable colors
+    if (!options.color) {
+      color.disable();
+    }
+
+    const tsconfig = new TSConfig({
+      filePath: options.tsconfig,
+      isSilenced: false,
+    });
+
+    const builder = new Builder(tsconfig);
+    const typeChecker = new TypeChecker(tsconfig);
+    const server = new Server(entry, tsconfig, options.port);
+    const watcher = new Watcher(tsconfig);
+
+    server.validate();
+
+    process.on('SIGINT', () => {
+      console.log('');
+      wait('shutting down...');
+
+      server.stop();
+      builder.stop();
+      watcher.stop();
+
+      process.exit(process.exitCode);
+    });
+
+    await watcher.start(async () => {
+      if (options.typeCheck) {
+        typeChecker.start();
+      }
+
+      await builder.start();
+      server.start();
+    });
+  } catch (err) {
+    if (process.env.JUST_DEBUG) {
+      error(err);
+    }
+  }
 }
 
-const tsconfig = new TSConfig(options.tsconfig);
-const builder = new Builder(tsconfig);
-const typeChecker = new TypeChecker(tsconfig);
-const server = new Server(entry, tsconfig, options.port);
-const watcher = new Watcher(tsconfig);
-
-process.on('SIGINT', () => {
-  console.log('');
-  wait('shutting down...');
-
-  server.stop();
-  builder.stop();
-  watcher.stop();
-
-  process.exit(process.exitCode);
-});
-
-(async () => {
-  if (!server.entryExists) {
-    error('entry file not found');
-    return;
-  }
-
-  watcher.start(async () => {
-    if (options.typeCheck) {
-      typeChecker.start();
-    }
-
-    if (typeChecker.isFailed) {
-      return;
-    }
-
-    await builder.start();
-
-    if (builder.isFailed) {
-      return;
-    }
-
-    server.start();
-  });
-})();
+main();

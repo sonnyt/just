@@ -3,7 +3,7 @@ import color from 'colors/safe';
 
 import Server from './utils/server';
 import TSConfig from './utils/tsconfig';
-import { wait } from './utils/logger';
+import { error, wait } from './utils/logger';
 
 interface Options {
   tsconfig: string;
@@ -27,20 +27,35 @@ program
 const [cmd, ...args] = program.args;
 const options: Options = program.opts();
 
-if (!options.color) {
-  color.disable();
+async function main() {
+  try {
+    // disable colors
+    if (!options.color) {
+      color.disable();
+    }
+
+    const tsconfig = new TSConfig({
+      filePath: options.tsconfig,
+      isSilenced: true,
+    });
+
+    const server = new Server('', tsconfig);
+
+    process.on('SIGINT', () => {
+      console.log('');
+      wait('shutting down...');
+
+      server.stop();
+
+      process.exit(process.exitCode);
+    });
+
+    server.run(cmd, args);
+  } catch (err) {
+    if (process.env.JUST_DEBUG) {
+      error(err);
+    }
+  }
 }
 
-const tsconfig = new TSConfig(options.tsconfig);
-const server = new Server('', tsconfig);
-
-process.on('SIGINT', () => {
-  console.log('');
-  wait('shutting down...');
-
-  server.stop();
-
-  process.exit(process.exitCode);
-});
-
-server.run(cmd, args);
+main();

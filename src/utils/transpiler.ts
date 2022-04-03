@@ -22,7 +22,10 @@ export class Transpiler {
   };
 
   constructor(tsconfig = 'tsconfig.json') {
-    this.tsconfig = new TSConfig(tsconfig, !!process.env.JUST_TSCONFIG);
+    this.tsconfig = new TSConfig({
+      filePath: tsconfig,
+      isSilenced: !!process.env.JUST_TSCONFIG,
+    });
   }
 
   private transpile(code: string, loader: Loader) {

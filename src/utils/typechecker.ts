@@ -8,8 +8,6 @@ export default class TypeChecker {
   private compilerOptions: any;
   private files: string[];
 
-  isFailed = false;
-
   constructor(tsconfig: TSConfig) {
     this.files = tsconfig.files;
     this.compilerOptions = tsconfig.compilerOptions;
@@ -20,15 +18,14 @@ export default class TypeChecker {
       const time = timer();
       time.start('type checking...');
 
-      this.isFailed = false;
       const options = this.compileJSON();
       this.diagnostic(options);
 
       time.end('type checked successfully', `(${this.files.length} modules)`);
     } catch (err: any) {
       this.formatError(err);
-      this.isFailed = true;
       error('type check failed');
+      throw err;
     }
   }
 

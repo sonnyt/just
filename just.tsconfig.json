@@ -9,10 +9,10 @@
     "emitDecoratorMetadata": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "importHelpers": true
+    "importHelpers": true,
+    "outDir": "dist",
+    "paths": {}
   },
   "include": ["./"],
-  "exclude": ["node_modules"],
-  "outDir": "dist",
-  "paths": {}
+  "exclude": ["node_modules"]
 }

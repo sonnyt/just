@@ -4,7 +4,14 @@ import { resolve } from 'path';
 import { existsSync, readFileSync } from 'fs';
 import stripJsonComments from 'strip-json-comments';
 
-import { error, warning } from './logger';
+import { error, info } from './logger';
+
+interface TSConfigOptions {
+  filePath: string;
+  isSilenced: boolean;
+  include?: string;
+  outDir?: string;
+}
 
 export default class TSConfig {
   private _outDir?: string;
@@ -14,16 +21,11 @@ export default class TSConfig {
   filePath: string;
   config: any;
 
-  constructor(
-    filePath: string,
-    silence: boolean = false,
-    include?: string,
-    outDir?: string
-  ) {
-    this._outDir = outDir;
-    this._include = include ? [include] : null;
-    this.filePath = resolve(process.cwd(), filePath);
-    this.isSilenced = silence;
+  constructor(options: TSConfigOptions) {
+    this._outDir = options.outDir;
+    this._include = options.include ? [options.include] : null;
+    this.filePath = resolve(process.cwd(), options.filePath);
+    this.isSilenced = options.isSilenced;
 
     this.load();
   }
@@ -31,7 +33,7 @@ export default class TSConfig {
   load() {
     if (!existsSync(this.filePath)) {
       if (!this.isSilenced) {
-        warning('tsconfig.json file is missing, using default settings');
+        info('tsconfig.json file is missing, using default settings');
       }
 
       this.filePath = resolve(__dirname, '..', '..', 'just.tsconfig.json');

@@ -33,6 +33,10 @@ export function warning(...args: unknown[]) {
   log(colors.bold(colors.yellow('warning')), '-', ...args);
 }
 
+export function info(...args: unknown[]) {
+  log(colors.bold(colors.cyan('info')), '-', ...args);
+}
+
 export function log(...args: unknown[]) {
   console.log(prefix, ...args);
 }

@@ -4,6 +4,7 @@ import color from 'colors/safe';
 import TSConfig from './utils/tsconfig';
 import TypeChecker from './utils/typechecker';
 import Builder from './utils/builder';
+import { error } from './utils/logger';
 
 interface Options {
   tsconfig: string;
@@ -29,22 +30,33 @@ program
 const [files] = program.args;
 const options: Options = program.opts();
 
-if (!options.color) {
-  color.disable();
-}
+async function main() {
+  try {
+    // disable colors
+    if (!options.color) {
+      color.disable();
+    }
 
-const tsconfig = new TSConfig(options.tsconfig, false, files, options.outDir);
-const builder = new Builder(tsconfig);
-const typeChecker = new TypeChecker(tsconfig);
+    const tsconfig = new TSConfig({
+      include: files,
+      isSilenced: false,
+      outDir: options.outDir,
+      filePath: options.tsconfig,
+    });
 
-(async () => {
-  if (!options.transpileOnly) {
-    typeChecker.start();
+    const builder = new Builder(tsconfig);
+    const typeChecker = new TypeChecker(tsconfig);
 
-    if (typeChecker.isFailed) {
-      return;
+    if (!options.transpileOnly) {
+      typeChecker.start();
+    }
+
+    await builder.build();
+  } catch (err) {
+    if (process.env.JUST_DEBUG) {
+      error(err);
     }
   }
+}
 
-  await builder.build();
-})();
+main();

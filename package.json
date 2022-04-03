@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "",
   "files": [
-    "dist/**/*"
+    "dist/**/*",
+    "register.js"
   ],
   "bin": {
     "just": "./dist/just.js"
@@ -30,7 +31,7 @@
     "commander": "^9.1.0",
     "dir-glob": "^3.0.1",
     "dotenv": "^15.0.1",
-    "esbuild": "^0.14.16",
+    "esbuild": "^0.14.30",
     "glob": "^7.2.0",
     "strip-json-comments": "^3.1.1",
     "tsc-alias": "^1.6.5",
