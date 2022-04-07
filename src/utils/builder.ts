@@ -1,14 +1,12 @@
-import { BuildIncremental, build, BuildOptions } from 'esbuild';
-import { replaceTscAliasPaths } from 'tsc-alias';
-import { existsSync, rmSync } from 'fs';
-import { resolve } from 'path';
+import { transformFileSync, Options } from '@swc/core';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
+import { basename, dirname, resolve } from 'path';
 
 import { timer, error } from './logger';
 import type TSConfig from './tsconfig';
 
 export default class Builder {
   private tsconfig: TSConfig;
-  private builder?: BuildIncremental;
 
   constructor(tsconfig: TSConfig) {
     this.tsconfig = tsconfig;
@@ -24,57 +22,53 @@ export default class Builder {
     return rmSync(path, { recursive: true, force: true });
   }
 
-  private get options(): BuildOptions {
+  private get options(): Options {
     return {
-      format: 'cjs',
-      platform: 'node',
-      minify: true,
-      absWorkingDir: process.cwd(),
-      entryPoints: this.tsconfig.files,
-      sourcemap: this.tsconfig.sourceMap,
-      outdir: this.tsconfig.outDir,
-      tsconfig: this.tsconfig.filePath,
+      swcrc: false,
+      minify: false,
+      isModule: true,
+      configFile: false,
+      cwd: process.cwd(),
+      jsc: this.tsconfig.jsc,
+      sourceMaps: this.tsconfig.sourceMap,
+      inlineSourcesContent: true,
+      module: {
+        type: 'commonjs',
+        noInterop: this.tsconfig.compilerOptions.esModuleInterop,
+      },
     };
   }
 
-  async build() {
-    try {
-      const time = timer();
-      time.start('building...');
+  private write(file: string, content: string, map?: string) {
+    const destDir = resolve(this.tsconfig.outDir, dirname(file));
+    const fileName = basename(file).replace(/\.\w*$/, '.js');
+    const destFile = resolve(destDir, fileName);
 
-      this.clean();
+    mkdirSync(destDir, { recursive: true });
 
-      await build(this.options);
-
-      if (this.tsconfig.hasPaths) {
-        await replaceTscAliasPaths({
-          configFile: this.tsconfig.filePath,
-          outDir: this.tsconfig.outDir,
-        });
-      }
-
-      time.end('build successfully', `(${this.tsconfig.files.length} modules)`);
-    } catch (err) {
-      error('build failed');
-      throw err;
+    if (
+      map &&
+      this.tsconfig.sourceMap &&
+      this.tsconfig.sourceMap !== 'inline'
+    ) {
+      content += `\n//# sourceMappingURL=${fileName}.map`;
+      writeFileSync(`${destFile}.map`, map);
     }
+
+    writeFileSync(destFile, content);
   }
 
-  async start() {
+  transform(file: string) {
+    const { map, code } = transformFileSync(file, this.options);
+    this.write(file, code, map);
+  }
+
+  buildFile(file: string) {
     try {
       const time = timer();
-      time.start('building...');
+      time.start('building', file, '...');
 
-      this.clean();
-
-      if (this.builder) {
-        this.builder = await this.rebuild();
-      } else {
-        this.builder = await build({
-          ...this.options,
-          incremental: true,
-        });
-      }
+      this.transform(file);
 
       time.end('build successfully');
     } catch (err) {
@@ -83,20 +77,19 @@ export default class Builder {
     }
   }
 
-  rebuild() {
-    if (!this.builder) {
-      return;
+  build() {
+    try {
+      const time = timer();
+      time.start('building...');
+
+      this.clean();
+
+      this.tsconfig.files.forEach((file) => this.transform(file));
+
+      time.end('build successfully', `(${this.tsconfig.files.length} modules)`);
+    } catch (err) {
+      error('build failed');
+      throw err;
     }
-
-    return this.builder.rebuild();
-  }
-
-  stop() {
-    if (!this.builder?.stop) {
-      return;
-    }
-
-    this.builder.stop();
-    this.builder.rebuild.dispose();
   }
 }

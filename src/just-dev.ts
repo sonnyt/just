@@ -6,7 +6,7 @@ import Server from './utils/server';
 import Builder from './utils/builder';
 import TypeChecker from './utils/typechecker';
 import Watcher from './utils/watcher';
-import { error, wait } from './utils/logger';
+import { error, info, wait } from './utils/logger';
 
 interface Options {
   tsconfig: string;
@@ -34,6 +34,10 @@ const options: Options = program.opts();
 
 async function main() {
   try {
+    if (process.env.JUST_DEBUG) {
+      info('debugger is on');
+    }
+
     // disable colors
     if (!options.color) {
       color.disable();
@@ -56,19 +60,26 @@ async function main() {
       wait('shutting down...');
 
       server.stop();
-      builder.stop();
       watcher.stop();
 
       process.exit(process.exitCode);
     });
 
-    await watcher.start(async () => {
-      if (options.typeCheck) {
-        typeChecker.start();
-      }
+    await watcher.ready(async () => {
+      // if (options.typeCheck) {
+      //   typeChecker.start();
+      // }
 
-      await builder.start();
-      server.start();
+      builder.build();
+      // server.start();
+    });
+
+    await watcher.change(async (filename) => {
+      // if (options.typeCheck) {
+      //   typeChecker.start();
+      // }
+
+      builder.buildFile(filename);
     });
   } catch (err) {
     if (process.env.JUST_DEBUG) {

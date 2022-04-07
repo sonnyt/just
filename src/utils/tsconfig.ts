@@ -5,6 +5,7 @@ import { existsSync, readFileSync } from 'fs';
 import stripJsonComments from 'strip-json-comments';
 
 import { error, info } from './logger';
+import { JscConfig } from '@swc/core';
 
 interface TSConfigOptions {
   filePath: string;
@@ -100,6 +101,26 @@ export default class TSConfig {
     return false;
   }
 
+  get jsc(): JscConfig {
+    return {
+      loose: false,
+      keepClassNames: true,
+      paths: this.compilerOptions.paths,
+      baseUrl: this.compilerOptions.baseUrl,
+      target: this.compilerOptions.target.toLowerCase(),
+      parser: {
+        syntax: 'typescript',
+        tsx: false,
+        decorators: this.compilerOptions.experimentalDecorators,
+        dynamicImport: this.compilerOptions.dynamicImport,
+      },
+      transform: {
+        legacyDecorator: this.compilerOptions.experimentalDecorators,
+        decoratorMetadata: this.compilerOptions.emitDecoratorMetadata,
+      },
+    };
+  }
+
   get include(): string[] {
     const paths = this._include ?? this.config.include ?? ['./'];
     return this.dir(paths);
@@ -111,10 +132,6 @@ export default class TSConfig {
   }
 
   get outDir(): string {
-    return this._outDir ?? this.compilerOptions.outDir;
-  }
-
-  get hasPaths() {
-    return Object.keys(this.compilerOptions.paths ?? {}).length > 0;
+    return this._outDir ?? this.compilerOptions.outDir ?? 'dist';
   }
 }

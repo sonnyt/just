@@ -3,16 +3,16 @@ import colors from 'colors/safe';
 const prefix = colors.blue('[Just]');
 
 export function timer() {
-  let start: number;
+  let start: [number, number];
 
   return {
     start(...args: unknown[]) {
-      start = performance.now();
+      start = process.hrtime();
       wait(...args);
     },
     end(...args: unknown[]) {
-      const end = performance.now();
-      event(...args, Math.round(end - start), 'in', 'ms');
+      const end = process.hrtime(start);
+      event(...args, (end[1] / 1000000).toFixed(2), 'in', 'ms');
     },
   };
 }

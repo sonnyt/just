@@ -3,7 +3,7 @@ import color from 'colors/safe';
 
 import Server from './utils/server';
 import TSConfig from './utils/tsconfig';
-import { error, wait } from './utils/logger';
+import { error, info, wait } from './utils/logger';
 
 interface Options {
   tsconfig: string;
@@ -29,6 +29,10 @@ const options: Options = program.opts();
 
 async function main() {
   try {
+    if (process.env.JUST_DEBUG) {
+      info('debugger is on');
+    }
+
     // disable colors
     if (!options.color) {
       color.disable();

@@ -4,14 +4,12 @@ import TSConfig from './tsconfig';
 export default class Watcher {
   private ignored: string[];
   private include: string[];
-  private watcher?: FSWatcher;
+  private watcher: FSWatcher;
 
   constructor(tsconfig: InstanceType<typeof TSConfig>) {
     this.ignored = tsconfig.exclude;
     this.include = tsconfig.include;
-  }
 
-  start(callback: (...args: any) => Promise<void>) {
     this.watcher = watch(this.include, {
       persistent: true,
       ignoreInitial: true,
@@ -23,26 +21,36 @@ export default class Watcher {
       },
       cwd: process.cwd(),
     });
+  }
 
+  private addMethod(
+    types: string[],
+    callback: (...args: any) => Promise<void>
+  ) {
     return new Promise((resolve, reject) => {
-      this.watcher?.on('all', async (...args) => {
-        try {
-          await callback(...args);
-          resolve(null);
-        } catch (err) {
-          reject(err);
-        }
-      });
-
-      this.watcher?.on('ready', async () => {
-        try {
-          await callback();
-          resolve(null);
-        } catch (err) {
-          reject(err);
-        }
+      types.forEach((type) => {
+        this.watcher.on(type, async (...args) => {
+          try {
+            await callback(...args);
+            resolve(null);
+          } catch (err) {
+            reject(err);
+          }
+        });
       });
     });
+  }
+
+  ready(callback: (...args: any) => Promise<void>) {
+    return this.addMethod(['ready'], callback);
+  }
+
+  change(callback: (...args: any) => Promise<void>) {
+    return this.addMethod(['add', 'change'], callback);
+  }
+
+  remove(callback: (...args: any) => Promise<void>) {
+    return this.addMethod(['unlink'], callback);
   }
 
   stop() {
