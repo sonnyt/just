@@ -13,13 +13,27 @@ export default class TypeChecker {
     this.compilerOptions = tsconfig.compilerOptions;
   }
 
-  start() {
+  check() {
     try {
       const time = timer();
       time.start('type checking...');
 
-      const options = this.compileJSON();
-      this.diagnostic(options);
+      this.diagnostic(this.files);
+
+      time.end('type checked successfully', `(${this.files.length} modules)`);
+    } catch (err: any) {
+      this.formatError(err);
+      error('type check failed');
+      throw err;
+    }
+  }
+
+  checkFile(file: string) {
+    try {
+      const time = timer();
+      time.start('type checking', file, '...');
+
+      this.diagnostic([file]);
 
       time.end('type checked successfully', `(${this.files.length} modules)`);
     } catch (err: any) {
@@ -42,8 +56,9 @@ export default class TypeChecker {
     return options;
   }
 
-  private diagnostic(options: CompilerOptions) {
-    const program = ts.createProgram(this.files, options);
+  private diagnostic(files: string[]) {
+    const options = this.compileJSON();
+    const program = ts.createProgram(files, options);
     const errors = ts.getPreEmitDiagnostics(program);
 
     if (errors.length) {

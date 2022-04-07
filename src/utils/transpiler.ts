@@ -1,5 +1,4 @@
 import InternalModule from 'module';
-import { transformSync, Loader } from 'esbuild';
 
 import TSConfig from './tsconfig';
 
@@ -12,7 +11,7 @@ const Module = InternalModule as unknown as ModuleType;
 
 export class Transpiler {
   private tsconfig: TSConfig;
-  private loaders: Record<string, Loader> = {
+  private loaders: Record<string,> = {
     '.js': 'js',
     '.jsx': 'jsx',
     '.ts': 'ts',

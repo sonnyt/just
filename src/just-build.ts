@@ -52,10 +52,10 @@ async function main() {
     const typeChecker = new TypeChecker(tsconfig);
 
     if (!options.transpileOnly) {
-      typeChecker.start();
+      typeChecker.check();
     }
 
-    await builder.build();
+    builder.build();
   } catch (err) {
     if (process.env.JUST_DEBUG) {
       error(err);

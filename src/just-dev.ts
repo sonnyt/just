@@ -66,18 +66,18 @@ async function main() {
     });
 
     await watcher.ready(async () => {
-      // if (options.typeCheck) {
-      //   typeChecker.start();
-      // }
+      if (options.typeCheck) {
+        typeChecker.check();
+      }
 
       builder.build();
       // server.start();
     });
 
     await watcher.change(async (filename) => {
-      // if (options.typeCheck) {
-      //   typeChecker.start();
-      // }
+      if (options.typeCheck) {
+        typeChecker.checkFile(filename);
+      }
 
       builder.buildFile(filename);
     });

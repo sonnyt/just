@@ -39,8 +39,8 @@ async function main() {
     }
 
     const tsconfig = new TSConfig({
+      isSilenced: false,
       filePath: options.tsconfig,
-      isSilenced: true,
     });
 
     const server = new Server('', tsconfig);
