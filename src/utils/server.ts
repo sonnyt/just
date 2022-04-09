@@ -22,8 +22,8 @@ export default class Server {
   private get options(): ForkOptions {
     const options = [
       process.env['NODE_OPTIONS'],
-      `-r ${__dirname}/transpiler.js`,
       `-r ${require.resolve('dotenv/config')}`,
+      `-r ${__dirname}/transpiler.js`,
       '--no-warnings',
     ];
 
@@ -39,7 +39,6 @@ export default class Server {
         ...process.env,
         NODE_OPTIONS,
         PORT: this.port,
-        DOTENV_CONFIG_PATH: process.cwd(),
         JUST_TSCONFIG: this.tsconfig.filePath,
       },
     };
@@ -59,7 +58,11 @@ export default class Server {
     }
   }
 
-  static findEntryPath() {
+  static findEntryPath(path: string) {
+    if (path) {
+      return path;
+    }
+
     info('entry path is not provided, using "main" in package.json');
 
     const packageFilePath = resolve(process.cwd(), 'package.json');

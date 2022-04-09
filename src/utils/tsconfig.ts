@@ -49,18 +49,20 @@ export default class TSConfig {
     }
   }
 
-  private dir(paths: string[] | string) {
+  private dir(paths: string[] | string, extensions?: string[]) {
     return dirGlob.sync(paths, {
-      extensions: this.extensions,
+      extensions,
       cwd: process.cwd(),
-      files: ['*'],
     });
   }
 
   get files(): string[] {
-    return this.include.flatMap((path: string) =>
-      glob.sync(path, { ignore: this.exclude })
-    );
+    return this.include.flatMap((path: string) => {
+      return glob.sync(path, {
+        nodir: true,
+        ignore: this.exclude,
+      });
+    });
   }
 
   get compilerOptions() {
@@ -103,14 +105,12 @@ export default class TSConfig {
 
   get jsc(): JscConfig {
     return {
-      loose: false,
       keepClassNames: true,
-      paths: this.compilerOptions.paths,
+      externalHelpers: true,
       baseUrl: this.compilerOptions.baseUrl,
       target: this.compilerOptions.target.toLowerCase(),
       parser: {
         syntax: 'typescript',
-        tsx: false,
         decorators: this.compilerOptions.experimentalDecorators,
         dynamicImport: this.compilerOptions.dynamicImport,
       },
@@ -118,12 +118,20 @@ export default class TSConfig {
         legacyDecorator: this.compilerOptions.experimentalDecorators,
         decoratorMetadata: this.compilerOptions.emitDecoratorMetadata,
       },
+      minify: {
+        compress: false,
+        mangle: false,
+      },
     };
+  }
+
+  get hasPaths() {
+    return Object.keys(this.compilerOptions.paths ?? {}).length > 0;
   }
 
   get include(): string[] {
     const paths = this._include ?? this.config.include ?? ['./'];
-    return this.dir(paths);
+    return this.dir(paths, this.extensions);
   }
 
   get exclude(): string[] {

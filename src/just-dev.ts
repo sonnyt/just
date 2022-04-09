@@ -3,7 +3,6 @@ import color from 'colors/safe';
 
 import TSConfig from './utils/tsconfig';
 import Server from './utils/server';
-import Builder from './utils/builder';
 import TypeChecker from './utils/typechecker';
 import Watcher from './utils/watcher';
 import { error, info, wait } from './utils/logger';
@@ -18,7 +17,7 @@ interface Options {
 const program = new Command();
 
 program
-  .argument('[entry]', 'server entry file', Server.findEntryPath())
+  .argument('[entry]', 'server entry file', Server.findEntryPath)
   .option('-p, --port <port>', 'server port')
   .option('--type-check', 'enable type checking')
   .option('--no-color', 'disable output color')
@@ -48,7 +47,6 @@ async function main() {
       isSilenced: false,
     });
 
-    const builder = new Builder(tsconfig);
     const typeChecker = new TypeChecker(tsconfig);
     const server = new Server(entry, tsconfig, options.port);
     const watcher = new Watcher(tsconfig);
@@ -70,8 +68,7 @@ async function main() {
         typeChecker.check();
       }
 
-      builder.build();
-      // server.start();
+      server.start();
     });
 
     await watcher.change(async (filename) => {
@@ -79,7 +76,7 @@ async function main() {
         typeChecker.checkFile(filename);
       }
 
-      builder.buildFile(filename);
+      server.restart();
     });
   } catch (err) {
     if (process.env.JUST_DEBUG) {

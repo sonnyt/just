@@ -1,4 +1,5 @@
 import InternalModule from 'module';
+import Builder from './builder';
 
 import TSConfig from './tsconfig';
 
@@ -10,50 +11,35 @@ type ModuleType = InternalModule & {
 const Module = InternalModule as unknown as ModuleType;
 
 export class Transpiler {
-  private tsconfig: TSConfig;
-  private loaders: Record<string,> = {
-    '.js': 'js',
-    '.jsx': 'jsx',
-    '.ts': 'ts',
-    '.tsx': 'tsx',
-    '.d.ts': 'ts',
-    '.json': 'json',
-  };
+  private builder: Builder;
 
-  constructor(tsconfig = 'tsconfig.json') {
-    this.tsconfig = new TSConfig({
-      filePath: tsconfig,
+  constructor(tsconfigPath = 'tsconfig.json') {
+    const tsconfig = new TSConfig({
+      filePath: tsconfigPath,
       isSilenced: !!process.env.JUST_TSCONFIG,
     });
+
+    this.builder = new Builder(tsconfig);
   }
 
-  private transpile(code: string, loader: Loader) {
-    return transformSync(code, {
-      loader,
-      format: 'cjs',
-      tsconfigRaw: {
-        compilerOptions: this.tsconfig.compilerOptions,
-      },
-    });
+  private transpile(code: string) {
+    const response = this.builder.transformCode(code);
+    return response.code;
   }
 
   loader() {
     const jsLoader = Module._extensions['.js'];
 
-    Object.entries(this.loaders).forEach(([extension, loader]) => {
-      const defaultLoader = Module._extensions[extension] ?? jsLoader;
+    Module._extensions['.ts'] = (module: any, filename: string) => {
+      const compile = module._compile;
 
-      Module._extensions[extension] = (module: any, filename: string) => {
-        const compile = module._compile;
-
-        module._compile = (rawCode: string) => {
-          const { code } = this.transpile(rawCode, loader);
-          return compile.call(module, code, filename);
-        };
-
-        defaultLoader(module, filename);
+      module._compile = (jsCode: string) => {
+        const code = this.transpile(jsCode);
+        return compile.call(module, code, filename);
       };
-    });
+
+      jsLoader(module, filename);
+    };
   }
 }
 

@@ -35,8 +35,7 @@
   },
   "homepage": "https://github.com/sonnyt/just#readme",
   "dependencies": {
-    "@swc/cli": "^0.1.57",
-    "@swc/core": "^1.2.163",
+    "@swc/core": "^1.2.164",
     "@swc/helpers": "^0.3.8",
     "chokidar": "^3.5.3",
     "colors": "^1.4.0",
@@ -45,10 +44,12 @@
     "dotenv": "^15.0.1",
     "glob": "^7.2.0",
     "strip-json-comments": "^3.1.1",
+    "tsc-alias": "^1.6.6",
     "tsconfig-paths": "^3.14.1",
     "typescript": "^4.5.5"
   },
   "devDependencies": {
+    "@swc/cli": "^0.1.57",
     "@types/dir-glob": "^2.0.1",
     "@types/eslint": "^8.4.1",
     "@types/glob": "^7.2.0",

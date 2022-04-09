@@ -1,6 +1,7 @@
-import { transformFileSync, Options } from '@swc/core';
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
-import { basename, dirname, resolve } from 'path';
+import { transformFileSync, transformSync, Options } from '@swc/core';
+import { copyFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
+import { basename, dirname, extname, join, relative, resolve } from 'path';
+import { replaceTscAliasPaths } from 'tsc-alias';
 
 import { timer, error } from './logger';
 import type TSConfig from './tsconfig';
@@ -29,9 +30,9 @@ export default class Builder {
       isModule: true,
       configFile: false,
       cwd: process.cwd(),
+      inlineSourcesContent: true,
       jsc: this.tsconfig.jsc,
       sourceMaps: this.tsconfig.sourceMap,
-      inlineSourcesContent: true,
       module: {
         type: 'commonjs',
         noInterop: this.tsconfig.compilerOptions.esModuleInterop,
@@ -39,52 +40,92 @@ export default class Builder {
     };
   }
 
-  private write(file: string, content: string, map?: string) {
-    const destDir = resolve(this.tsconfig.outDir, dirname(file));
-    const fileName = basename(file).replace(/\.\w*$/, '.js');
-    const destFile = resolve(destDir, fileName);
+  private outPath(filename: string) {
+    const relativePath = relative(process.cwd(), filename);
 
-    mkdirSync(destDir, { recursive: true });
+    const components = relativePath.split('/').slice(1);
+
+    if (!components.length) {
+      return filename;
+    }
+
+    while (components[0] === '..') {
+      components.shift();
+    }
+
+    return join(this.tsconfig.outDir, ...components);
+  }
+
+  private write(filename: string, content: string, map?: string) {
+    const outDir = dirname(filename);
+    const outFile = basename(filename);
+
+    mkdirSync(outDir, { recursive: true });
 
     if (
       map &&
       this.tsconfig.sourceMap &&
       this.tsconfig.sourceMap !== 'inline'
     ) {
-      content += `\n//# sourceMappingURL=${fileName}.map`;
-      writeFileSync(`${destFile}.map`, map);
+      content += `\n//# sourceMappingURL=${outFile}.map`;
+      writeFileSync(`${filename}.map`, map);
     }
 
-    writeFileSync(destFile, content);
+    writeFileSync(filename, content);
   }
 
-  transform(file: string) {
-    const { map, code } = transformFileSync(file, this.options);
-    this.write(file, code, map);
+  private copy(filename: string, dest: string) {
+    copyFileSync(filename, dest);
   }
 
-  buildFile(file: string) {
-    try {
-      const time = timer();
-      time.start('building', file, '...');
+  transformCode(code: string) {
+    return transformSync(code, this.options);
+  }
 
-      this.transform(file);
-
-      time.end('build successfully');
-    } catch (err) {
-      error('build failed');
-      throw err;
+  async transform(filename: string) {
+    // ignore .d.ts file
+    if (filename.endsWith('.d.ts')) {
+      return;
     }
+
+    let outPath = this.outPath(filename);
+
+    // copy non .ts file
+    if (!filename.endsWith('.ts')) {
+      return this.copy(filename, outPath);
+    }
+
+    outPath = outPath.replace(/\.\w*$/, '.js');
+    const sourceFileName = relative(dirname(outPath), filename);
+
+    const options = {
+      ...this.options,
+      sourceFileName,
+      outputPath: outPath,
+    };
+
+    const { map, code } = transformFileSync(filename, options);
+
+    return this.write(outPath, code, map);
   }
 
-  build() {
+  async build() {
     try {
       const time = timer();
       time.start('building...');
 
       this.clean();
 
-      this.tsconfig.files.forEach((file) => this.transform(file));
+      this.tsconfig.files.forEach((file) => {
+        this.transform(file);
+      });
+
+      if (this.tsconfig.hasPaths) {
+        await replaceTscAliasPaths({
+          configFile: this.tsconfig.filePath,
+          outDir: this.tsconfig.outDir,
+        });
+      }
 
       time.end('build successfully', `(${this.tsconfig.files.length} modules)`);
     } catch (err) {

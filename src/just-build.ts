@@ -55,7 +55,7 @@ async function main() {
       typeChecker.check();
     }
 
-    builder.build();
+    await builder.build();
   } catch (err) {
     if (process.env.JUST_DEBUG) {
       error(err);
