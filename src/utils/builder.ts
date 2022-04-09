@@ -24,6 +24,9 @@ export default class Builder {
   }
 
   private get options(): Options {
+    const esModuleInterop =
+      this.tsconfig.compilerOptions.esModuleInterop ?? true;
+
     return {
       swcrc: false,
       minify: false,
@@ -35,7 +38,7 @@ export default class Builder {
       sourceMaps: this.tsconfig.sourceMap,
       module: {
         type: 'commonjs',
-        noInterop: this.tsconfig.compilerOptions.esModuleInterop,
+        noInterop: !esModuleInterop,
       },
     };
   }
