@@ -106,7 +106,6 @@ export default class TSConfig {
   get jsc(): JscConfig {
     return {
       keepClassNames: true,
-      externalHelpers: true,
       baseUrl: this.compilerOptions.baseUrl,
       target: this.compilerOptions.target.toLowerCase(),
       parser: {
