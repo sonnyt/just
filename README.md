@@ -2,7 +2,7 @@
 Zero config TypeScript build and development toolkit.
 
 ## Features
-- Fast ESBuild transpiler
+- Fast SWC transpiler
 - TypeScript type check support
 - Live reload
 - `.env` file support
@@ -83,7 +83,7 @@ If `tsconfig.json` file is not provided or not found. Just fallsback to using a 
 {
   "compilerOptions": {
     "module": "CommonJS",
-    "target": "ESNext",
+    "target": "ES2021",
     "moduleResolution": "Node",
     "inlineSourceMap": true,
     "strict": true,
@@ -103,4 +103,3 @@ If `tsconfig.json` file is not provided or not found. Just fallsback to using a 
 ## Roadmap
 - ESLint support
 - Prettier support
-- Smart type checking
