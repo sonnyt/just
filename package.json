@@ -12,7 +12,7 @@
   "scripts": {
     "build": "npx swc ./src -d dist",
     "watch": "npx swc ./src -d dist -w",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
   },
   "repository": {
     "type": "git",
@@ -52,6 +52,9 @@
     "@types/dir-glob": "^2.0.1",
     "@types/eslint": "^8.4.1",
     "@types/glob": "^7.2.0",
-    "@types/node": "^17.0.10"
+    "@types/jest": "^27.4.1",
+    "@types/node": "^17.0.10",
+    "jest": "^27.5.1",
+    "ts-jest": "^27.1.4"
   }
 }
