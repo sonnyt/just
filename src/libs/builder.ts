@@ -1,9 +1,9 @@
 import { transformFileSync, transformSync, Options } from '@swc/core';
 import { copyFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
-import { basename, dirname, extname, join, relative, resolve } from 'path';
+import { basename, dirname, join, relative, resolve } from 'path';
 import { replaceTscAliasPaths } from 'tsc-alias';
 
-import { timer, error } from './logger';
+import { timer, error } from '../utils/logger';
 import type TSConfig from './tsconfig';
 
 export default class Builder {
@@ -24,9 +24,6 @@ export default class Builder {
   }
 
   private get options(): Options {
-    const esModuleInterop =
-      this.tsconfig.compilerOptions.esModuleInterop ?? true;
-
     return {
       swcrc: false,
       minify: false,
@@ -38,7 +35,7 @@ export default class Builder {
       sourceMaps: this.tsconfig.sourceMap,
       module: {
         type: 'commonjs',
-        noInterop: !esModuleInterop,
+        noInterop: !this.tsconfig.noInterop,
       },
     };
   }
@@ -65,20 +62,12 @@ export default class Builder {
 
     mkdirSync(outDir, { recursive: true });
 
-    if (
-      map &&
-      this.tsconfig.sourceMap &&
-      this.tsconfig.sourceMap !== 'inline'
-    ) {
+    if (map && this.tsconfig.fileSourceMap) {
       content += `\n//# sourceMappingURL=${outFile}.map`;
       writeFileSync(`${filename}.map`, map);
     }
 
     writeFileSync(filename, content);
-  }
-
-  private copy(filename: string, dest: string) {
-    copyFileSync(filename, dest);
   }
 
   transformCode(code: string) {
@@ -95,7 +84,7 @@ export default class Builder {
 
     // copy non .ts file
     if (!filename.endsWith('.ts')) {
-      return this.copy(filename, outPath);
+      return copyFileSync(filename, outPath);
     }
 
     outPath = outPath.replace(/\.\w*$/, '.js');
@@ -119,9 +108,9 @@ export default class Builder {
 
       this.clean();
 
-      this.tsconfig.files.forEach((file) => {
-        this.transform(file);
-      });
+      const { files } = this.tsconfig;
+
+      files.forEach((file) => this.transform(file));
 
       if (this.tsconfig.hasPaths) {
         await replaceTscAliasPaths({
@@ -130,7 +119,7 @@ export default class Builder {
         });
       }
 
-      time.end('build successfully', `(${this.tsconfig.files.length} modules)`);
+      time.end('build successfully', `(${files.length} modules)`);
     } catch (err) {
       error('build failed');
       throw err;

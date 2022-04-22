@@ -1,16 +1,14 @@
 import ts from 'typescript';
-import type { CompilerOptions, Diagnostic } from 'typescript';
+import type { Diagnostic } from 'typescript';
 
 import type TSConfig from './tsconfig';
-import { error, timer } from './logger';
+import { error, timer } from '../utils/logger';
 
 export default class TypeChecker {
-  private compilerOptions: any;
-  private files: string[];
+  private tsconfig: TSConfig;
 
   constructor(tsconfig: TSConfig) {
-    this.files = tsconfig.files;
-    this.compilerOptions = tsconfig.compilerOptions;
+    this.tsconfig = tsconfig;
   }
 
   check() {
@@ -18,9 +16,10 @@ export default class TypeChecker {
       const time = timer();
       time.start('type checking...');
 
-      this.diagnostic(this.files);
+      const { files } = this.tsconfig;
+      this.diagnostic(files);
 
-      time.end('type checked successfully', `(${this.files.length} modules)`);
+      time.end('type checked successfully', `(${files.length} modules)`);
     } catch (err: any) {
       this.formatError(err);
       error('type check failed');
@@ -35,7 +34,7 @@ export default class TypeChecker {
 
       this.diagnostic([file]);
 
-      time.end('type checked successfully', `(${this.files.length} modules)`);
+      time.end('type checked successfully');
     } catch (err: any) {
       this.formatError(err);
       error('type check failed');
@@ -45,7 +44,7 @@ export default class TypeChecker {
 
   private compileJSON() {
     const { options, errors } = ts.convertCompilerOptionsFromJson(
-      this.compilerOptions,
+      this.tsconfig.compilerOptions,
       ''
     );
 

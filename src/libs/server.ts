@@ -1,10 +1,14 @@
-import { fork, spawnSync, ChildProcess, ForkOptions } from 'child_process';
+import {
+  fork,
+  spawnSync,
+  ChildProcess,
+  ForkOptions,
+  SpawnSyncOptions,
+} from 'child_process';
 import colors from 'colors/safe';
-import { existsSync, readFileSync } from 'fs';
 import { resolve } from 'path';
-import stripJsonComments from 'strip-json-comments';
 
-import { timer, event, wait, error, info } from './logger';
+import { timer, event, wait, error } from '../utils/logger';
 import TSConfig from './tsconfig';
 
 export default class Server {
@@ -13,13 +17,13 @@ export default class Server {
   private process?: ChildProcess;
   private tsconfig: TSConfig;
 
-  constructor(entry: string, tsconfig: TSConfig, port?: string) {
+  constructor(tsconfig: TSConfig, entry: string = '', port?: string) {
     this.port = port ?? process.env.PORT;
     this.entry = entry;
     this.tsconfig = tsconfig;
   }
 
-  private get options(): ForkOptions {
+  private get options(): ForkOptions | SpawnSyncOptions {
     const options = [
       process.env['NODE_OPTIONS'],
       `-r ${require.resolve('dotenv/config')}`,
@@ -35,6 +39,7 @@ export default class Server {
 
     return {
       stdio: 'inherit',
+      windowsHide: true,
       env: {
         ...process.env,
         NODE_OPTIONS,
@@ -55,38 +60,6 @@ export default class Server {
       this.spawn();
     } catch {
       error('server failed');
-    }
-  }
-
-  static findEntryPath(path: string) {
-    if (path) {
-      return path;
-    }
-
-    info('entry path is not provided, using "main" in package.json');
-
-    const packageFilePath = resolve(process.cwd(), 'package.json');
-    let entry;
-
-    if (existsSync(packageFilePath)) {
-      const file = readFileSync(packageFilePath, 'utf-8');
-      const content = stripJsonComments(file.toString());
-      const json = JSON.parse(content);
-      entry = json.main;
-    }
-
-    return entry;
-  }
-
-  validate() {
-    if (!this.entry) {
-      error('cannot find entry path');
-      throw new Error('cannot find entry path');
-    }
-
-    if (!existsSync(this.entry)) {
-      error('entry file not found');
-      throw new Error('entry file not not found');
     }
   }
 

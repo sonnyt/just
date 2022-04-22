@@ -1,11 +1,11 @@
 import glob from 'glob';
 import dirGlob from 'dir-glob';
 import { resolve } from 'path';
-import { existsSync, readFileSync } from 'fs';
-import stripJsonComments from 'strip-json-comments';
-
-import { error, info } from './logger';
+import { existsSync } from 'fs';
 import { JscConfig } from '@swc/core';
+
+import { error, info } from '../utils/logger';
+import { readJSONFile } from '../utils/file';
 
 interface TSConfigOptions {
   filePath: string;
@@ -41,9 +41,7 @@ export default class TSConfig {
     }
 
     try {
-      const file = readFileSync(this.filePath, 'utf-8');
-      const config = stripJsonComments(file.toString());
-      this.config = JSON.parse(config);
+      this.config = readJSONFile(this.filePath);
     } catch {
       error('failed to load the tsconfig.json file');
     }
@@ -124,6 +122,14 @@ export default class TSConfig {
     };
   }
 
+  get inlineSourceMap() {
+    return this.sourceMap === 'inline';
+  }
+
+  get fileSourceMap() {
+    return this.sourceMap && this.sourceMap !== 'inline';
+  }
+
   get hasPaths() {
     return Object.keys(this.compilerOptions.paths ?? {}).length > 0;
   }
@@ -140,5 +146,9 @@ export default class TSConfig {
 
   get outDir(): string {
     return this._outDir ?? this.compilerOptions.outDir ?? 'dist';
+  }
+
+  get noInterop(): boolean {
+    return !(this.compilerOptions.esModuleInterop ?? true);
   }
 }

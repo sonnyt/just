@@ -1,11 +1,10 @@
-import { Command } from 'commander';
 import color from 'colors/safe';
 
-import TSConfig from './utils/tsconfig';
-import Server from './utils/server';
-import TypeChecker from './utils/typechecker';
-import Watcher from './utils/watcher';
-import { error, info, wait } from './utils/logger';
+import TSConfig from '../libs/tsconfig';
+import Server from '../libs/server';
+import TypeChecker from '../libs/typechecker';
+import Watcher from '../libs/watcher';
+import { error, info, wait } from '../utils/logger';
 
 interface Options {
   tsconfig: string;
@@ -14,24 +13,7 @@ interface Options {
   port?: string;
 }
 
-const program = new Command();
-
-program
-  .argument('[entry]', 'server entry file', Server.findEntryPath)
-  .option('-p, --port <port>', 'server port')
-  .option('--type-check', 'enable type checking')
-  .option('--no-color', 'disable output color')
-  .option(
-    '-t, --tsconfig <tsconfig>',
-    'typescript configuration file',
-    'tsconfig.json'
-  )
-  .parse(process.argv);
-
-const [entry] = program.processedArgs;
-const options: Options = program.opts();
-
-async function main() {
+export default async function (entry: string, options: Options) {
   try {
     if (process.env.JUST_DEBUG) {
       info('debugger is on');
@@ -48,10 +30,8 @@ async function main() {
     });
 
     const typeChecker = new TypeChecker(tsconfig);
-    const server = new Server(entry, tsconfig, options.port);
+    const server = new Server(tsconfig, entry, options.port);
     const watcher = new Watcher(tsconfig);
-
-    server.validate();
 
     process.on('SIGINT', () => {
       console.log('');
@@ -63,7 +43,7 @@ async function main() {
       process.exit(process.exitCode);
     });
 
-    await watcher.ready(async () => {
+    await watcher.ready(() => {
       if (options.typeCheck) {
         typeChecker.check();
       }
@@ -71,7 +51,7 @@ async function main() {
       server.start();
     });
 
-    await watcher.change(async (filename) => {
+    await watcher.change((filename) => {
       if (options.typeCheck) {
         typeChecker.checkFile(filename);
       }
@@ -84,5 +64,3 @@ async function main() {
     }
   }
 }
-
-main();

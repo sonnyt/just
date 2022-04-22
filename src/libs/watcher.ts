@@ -20,7 +20,7 @@ export default class Watcher {
 
   private addMethod(
     types: string[],
-    callback: (...args: any) => Promise<void>
+    callback: (...args: any) => Promise<void> | void
   ) {
     return new Promise((resolve, reject) => {
       types.forEach((type) => {
@@ -36,15 +36,15 @@ export default class Watcher {
     });
   }
 
-  ready(callback: (...args: any) => Promise<void>) {
+  ready(callback: (...args: any) => Promise<void> | void) {
     return this.addMethod(['ready'], callback);
   }
 
-  change(callback: (...args: any) => Promise<void>) {
+  change(callback: (...args: any) => Promise<void> | void) {
     return this.addMethod(['add', 'change'], callback);
   }
 
-  remove(callback: (...args: any) => Promise<void>) {
+  remove(callback: (...args: any) => Promise<void> | void) {
     return this.addMethod(['unlink'], callback);
   }
 

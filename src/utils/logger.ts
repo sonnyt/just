@@ -1,6 +1,6 @@
 import colors from 'colors/safe';
 
-const prefix = colors.blue('[Just]');
+const prefix = '[Just]';
 
 export function timer() {
   let start: [number, number];
@@ -38,5 +38,5 @@ export function info(...args: unknown[]) {
 }
 
 export function log(...args: unknown[]) {
-  console.log(prefix, ...args);
+  console.log(colors.blue(prefix), ...args);
 }

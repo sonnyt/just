@@ -1,10 +1,9 @@
-import { Command } from 'commander';
 import color from 'colors/safe';
 
-import TSConfig from './utils/tsconfig';
-import TypeChecker from './utils/typechecker';
-import Builder from './utils/builder';
-import { error, info } from './utils/logger';
+import TSConfig from '../libs/tsconfig';
+import TypeChecker from '../libs/typechecker';
+import Builder from '../libs/builder';
+import { error, info } from '../utils/logger';
 
 interface Options {
   tsconfig: string;
@@ -13,24 +12,7 @@ interface Options {
   outDir?: string;
 }
 
-const program = new Command();
-
-program
-  .argument('[files]', 'files to compile')
-  .option('--transpile-only', 'disable type checking')
-  .option('--out-dir <outDir>', 'output folder for all emitted files')
-  .option('--no-color', 'output color')
-  .option(
-    '-t, --tsconfig <tsconfig>',
-    'typescript configuration file',
-    'tsconfig.json'
-  )
-  .parse(process.argv);
-
-const [files] = program.args;
-const options: Options = program.opts();
-
-async function main() {
+export default async function (files: string, options: Options) {
   try {
     if (process.env.JUST_DEBUG) {
       info('debugger is on');
@@ -62,5 +44,3 @@ async function main() {
     }
   }
 }
-
-main();
