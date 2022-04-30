@@ -1,4 +1,5 @@
 import InternalModule from 'module';
+import { findConfigPath } from 'utils/file';
 import Builder from './builder';
 
 import TSConfig from './tsconfig';
@@ -13,12 +14,9 @@ const Module = InternalModule as unknown as ModuleType;
 export class Transpiler {
   private builder: Builder;
 
-  constructor(tsconfigPath = 'tsconfig.json') {
-    const tsconfig = new TSConfig({
-      filePath: tsconfigPath,
-      isSilenced: !!process.env.JUST_TSCONFIG,
-    });
-
+  constructor() {
+    const filePath = findConfigPath(process.env.JUST_TSCONFIG as string);
+    const tsconfig = new TSConfig({ filePath });
     this.builder = new Builder(tsconfig);
   }
 
@@ -43,5 +41,5 @@ export class Transpiler {
   }
 }
 
-const transpiler = new Transpiler(process.env.JUST_TSCONFIG);
+const transpiler = new Transpiler();
 export default transpiler.loader();

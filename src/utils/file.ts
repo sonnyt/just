@@ -37,3 +37,24 @@ export function findEntryPath(path: string) {
     throw new InvalidArgumentError('Entry path is not found');
   }
 }
+
+export function findConfigPath(path: string) {
+  if (path) {
+    return path;
+  }
+
+  const filePath = ['tsconfig.json', 'jsconfig.json'].find((file) => {
+    const resolvedPath = resolve(process.cwd(), file);
+    return existsSync(resolvedPath);
+  });
+
+  if (filePath) {
+    return resolve(process.cwd(), filePath);
+  }
+
+  info(
+    'tsconfig.json or jsconfig.json files are missing, using the default settings'
+  );
+
+  return resolve(__dirname, '..', '..', 'just.tsconfig.json');
+}

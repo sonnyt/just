@@ -2,7 +2,7 @@
 import { Command } from 'commander';
 
 import { version } from '../package.json';
-import { findEntryPath } from './utils/file';
+import { findConfigPath, findEntryPath } from './utils/file';
 import runAction from './commands/run';
 import buildAction from './commands/build';
 import devAction from './commands/dev';
@@ -41,7 +41,7 @@ program.commands.forEach((cmd) => {
   cmd.option(
     '-t, --tsconfig <tsconfig>',
     'typescript configuration file',
-    'tsconfig.json'
+    findConfigPath
   );
 });
 

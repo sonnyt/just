@@ -1,15 +1,12 @@
 import glob from 'glob';
 import dirGlob from 'dir-glob';
-import { resolve } from 'path';
-import { existsSync } from 'fs';
 import { JscConfig } from '@swc/core';
 
-import { error, info } from '../utils/logger';
+import { error } from '../utils/logger';
 import { readJSONFile } from '../utils/file';
 
 interface TSConfigOptions {
   filePath: string;
-  isSilenced: boolean;
   include?: string;
   outDir?: string;
 }
@@ -17,7 +14,6 @@ interface TSConfigOptions {
 export default class TSConfig {
   private _outDir?: string;
   private _include: string[] | null;
-  private isSilenced: boolean;
 
   filePath: string;
   config: any;
@@ -25,21 +21,12 @@ export default class TSConfig {
   constructor(options: TSConfigOptions) {
     this._outDir = options.outDir;
     this._include = options.include ? [options.include] : null;
-    this.filePath = resolve(process.cwd(), options.filePath);
-    this.isSilenced = options.isSilenced;
+    this.filePath = options.filePath;
 
     this.load();
   }
 
   load() {
-    if (!existsSync(this.filePath)) {
-      if (!this.isSilenced) {
-        info('tsconfig.json file is missing, using default settings');
-      }
-
-      this.filePath = resolve(__dirname, '..', '..', 'just.tsconfig.json');
-    }
-
     try {
       this.config = readJSONFile(this.filePath);
     } catch {

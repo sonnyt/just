@@ -107,5 +107,5 @@ If `tsconfig.json` file is not provided or not found. Just fallsback to using a 
 - Watch command
 - [TypeScript ESLint](https://typescript-eslint.io/) support
 - [Prettier](https://www.npmjs.com/package/prettier-eslint) support
-- `jsconfig.json` support
+- ~~`jsconfig.json` support~~
 - `.swcrc` support
