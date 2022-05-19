@@ -122,7 +122,7 @@ Based on the `paths` [configuration](https://www.typescriptlang.org/tsconfig#pat
 ...
 
 ## Roadmap
-- Watch command
+- Build watch option
 - [TypeScript ESLint](https://typescript-eslint.io/) support
 - [Prettier](https://www.npmjs.com/package/prettier-eslint) support
 - ~~`jsconfig.json` support~~
