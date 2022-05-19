@@ -5,15 +5,14 @@ import TSConfig from '../libs/tsconfig';
 import { error, info, wait } from '../utils/logger';
 
 interface Options {
-  tsconfig: string;
+  config: string;
   color: boolean;
+  debug: boolean;
 }
 
 export default async function (cmd: string, args: string[], options: Options) {
-  console.log(cmd, args);
-
   try {
-    if (process.env.JUST_DEBUG) {
+    if (options.debug) {
       info('debugger is on');
     }
 
@@ -22,11 +21,7 @@ export default async function (cmd: string, args: string[], options: Options) {
       color.disable();
     }
 
-    const tsconfig = new TSConfig({
-      isSilenced: false,
-      filePath: options.tsconfig,
-    });
-
+    const tsconfig = new TSConfig({ filePath: options.config });
     const server = new Server(tsconfig);
 
     process.on('SIGINT', () => {
@@ -40,7 +35,7 @@ export default async function (cmd: string, args: string[], options: Options) {
 
     server.run(cmd, args);
   } catch (err) {
-    if (process.env.JUST_DEBUG) {
+    if (options.debug) {
       error(err);
     }
   }

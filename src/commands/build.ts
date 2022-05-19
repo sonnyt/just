@@ -6,15 +6,16 @@ import Builder from '../libs/builder';
 import { error, info } from '../utils/logger';
 
 interface Options {
-  tsconfig: string;
   transpileOnly: boolean;
-  color: boolean;
   outDir?: string;
+  config: string;
+  color: boolean;
+  debug: boolean;
 }
 
 export default async function (files: string, options: Options) {
   try {
-    if (process.env.JUST_DEBUG) {
+    if (options.debug) {
       info('debugger is on');
     }
 
@@ -25,9 +26,8 @@ export default async function (files: string, options: Options) {
 
     const tsconfig = new TSConfig({
       include: files,
-      isSilenced: false,
       outDir: options.outDir,
-      filePath: options.tsconfig,
+      filePath: options.config,
     });
 
     const builder = new Builder(tsconfig);
@@ -39,7 +39,7 @@ export default async function (files: string, options: Options) {
 
     await builder.build();
   } catch (err) {
-    if (process.env.JUST_DEBUG) {
+    if (options.debug) {
       error(err);
     }
   }

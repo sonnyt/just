@@ -7,15 +7,16 @@ import Watcher from '../libs/watcher';
 import { error, info, wait } from '../utils/logger';
 
 interface Options {
-  tsconfig: string;
   typeCheck: boolean;
-  color: boolean;
   port?: string;
+  config: string;
+  color: boolean;
+  debug: boolean;
 }
 
 export default async function (entry: string, options: Options) {
   try {
-    if (process.env.JUST_DEBUG) {
+    if (options.debug) {
       info('debugger is on');
     }
 
@@ -24,11 +25,7 @@ export default async function (entry: string, options: Options) {
       color.disable();
     }
 
-    const tsconfig = new TSConfig({
-      filePath: options.tsconfig,
-      isSilenced: false,
-    });
-
+    const tsconfig = new TSConfig({ filePath: options.config });
     const typeChecker = new TypeChecker(tsconfig);
     const server = new Server(tsconfig, entry, options.port);
     const watcher = new Watcher(tsconfig);
@@ -59,7 +56,7 @@ export default async function (entry: string, options: Options) {
       server.restart();
     });
   } catch (err) {
-    if (process.env.JUST_DEBUG) {
+    if (options.debug) {
       error(err);
     }
   }

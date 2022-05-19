@@ -27,7 +27,7 @@ npm install -g @sonnyt/just
 Compiles the application for production deployment.
 
 **Arguments**
-- `files` - glob file path to compile. If not present, `includes` from tsconfig.json is used.
+- `files` - glob file path to compile. If not present, `includes` from config.json is used.
 
 **Options**
 |Option|Default|Description|
@@ -35,7 +35,8 @@ Compiles the application for production deployment.
 |`--transpile-only`|off|disables type checking|
 |`--out-dir <outDir>`|`compilerOptions.outDir`|output folder for all emitted files|
 |`--no-color`|off|disables output color|
-|`-t, --tsconfig <tsconfig>`|`tsconfig.json`|path to typescript configuration file. If not found default config will be used|
+|`--debug`|false|enables debug logging|
+|`-c, --config <config>`|[default](#default-typescript-config)|path to typescript configuration file|
 
 ### Dev
 
@@ -52,10 +53,10 @@ Starts the application in development mode.
 |`-p, --port <port>`|null|server port used in `process.env.PORT`|
 |`--type-check`|false|enables type checking|
 |`--no-color`|off|disables output color|
-|`-t, --tsconfig <tsconfig>`|`tsconfig.json`|path to typescript configuration file. If not found default config will be used|
+|`--debug`|false|enables debug logging|
+|`-c, --config <config>`|[default](#default-typescript-config)|path to typescript configuration file|
 
 ### Run
-
 `just run [options] <command> [args...]`
 
 Runs typescript scripts.
@@ -68,16 +69,27 @@ Runs typescript scripts.
 |Option|Default|Description|
 |:--|:--|:--|
 |`--no-color`|off|disables output color|
-|`-t, --tsconfig <tsconfig>`|`tsconfig.json`|path to typescript configuration file. If not found default config will be used|
+|`--debug`|false|enables debug logging|
+|`-c, --config <config>`|[default](#default-typescript-config)|path to typescript configuration file|
 
 ## Programmatic
-You can include just runner outside of CLI programmatically.
+You can require Just runner programmatically two ways:
+
+Import Just as early as possible in your application code.
+```JS
+require('@sonnyt/just/register');
+```
+
+Or you can use the `--require` (`-r`) [command line option](https://nodejs.org/api/cli.html#-r---require-module) to preload Just. By doing this, you do not need to require and load Just in your application code.
+
 ```shell
 node -r @sonnyt/just/register myscript.ts
 ```
 
-## Default TypeScript Config
-If `tsconfig.json` file is not provided or not found. Just falls back to using default settings.
+Please note that runner does not support type checking.
+
+## Default Config File
+Just automatically finds and loads `tsconfig.json` or `jsconfig.json`. By default, this search is performed relative to the entrypoint script. If neither file is found nor the file is not provided as an argument. Just falls back to using default settings.
 
 ```JSON
 {
@@ -99,6 +111,12 @@ If `tsconfig.json` file is not provided or not found. Just falls back to using d
   "exclude": ["node_modules"]
 }
 ```
+
+## Environment Variables
+When using the [dev](#dev) or [run](#run) commands. Just automatically finds and loads environment variables from a `.env` file into `process.env`. By default, this search is performed relative to the entrypoint script.
+
+## Path Alias
+Based on the `paths` [configuration](https://www.typescriptlang.org/tsconfig#paths), Just replaces all alias paths with relative paths after typescript compilation.
 
 ## FAQ
 ...

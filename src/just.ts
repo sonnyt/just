@@ -38,9 +38,10 @@ build.action(buildAction);
 // global options
 program.commands.forEach((cmd) => {
   cmd.option('--no-color', 'disable output color');
+  cmd.option('--debug', 'log error messages', process.env.JUST_DEBUG ?? false);
   cmd.option(
-    '-t, --tsconfig <tsconfig>',
-    'typescript configuration file',
+    '-c, --config <config>',
+    'tsconfig.json or jsconfig.json configuration file',
     findConfigPath
   );
 });
