@@ -2,9 +2,9 @@
 Zero config TypeScript build and development toolkit.
 
 ## Features
-- Fast SWC transpiler
+- Fast [SWC](https://swc.rs/) compiler
 - TypeScript type check support
-- Live reload
+- Live reload support
 - `.env` file support
 - Path alias support
 - Typescript script runner
@@ -17,6 +17,17 @@ npm install -D @sonnyt/just
 
 # Or globally
 npm install -g @sonnyt/just
+```
+
+## Usage
+To start a dev server in the root of your project just (😉) run:
+```shell
+just dev
+```
+
+To build:
+```shell
+just build
 ```
 
 ## Commands
@@ -42,7 +53,7 @@ Compiles the application for production deployment.
 
 `just dev [options] [entry]`
 
-Starts the application in development mode.
+Starts the application in development mode. Watches for any file changes and live reloads the server.
 
 **Arguments**
 - `entry` - server entry path to start. If not present, `main` from package.json is used.
@@ -59,11 +70,11 @@ Starts the application in development mode.
 ### Run
 `just run [options] <command> [args...]`
 
-Runs typescript scripts.
+Runs `.ts` file scripts.
 
 **Arguments**
 - `<command>` - script/command to run.
-- `[args...]` - arguments passed to script/command.
+- `[args...]` - arguments passed to the script/command.
 
 **Options**
 |Option|Default|Description|
