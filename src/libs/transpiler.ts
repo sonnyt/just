@@ -1,6 +1,6 @@
 import InternalModule from 'module';
 import { findConfigPath } from 'utils/file';
-import Builder from './builder';
+import Builder, { EXTENSIONS } from './builder';
 
 import TSConfig from './tsconfig';
 
@@ -28,16 +28,18 @@ export class Transpiler {
   loader() {
     const jsLoader = Module._extensions['.js'];
 
-    Module._extensions['.ts'] = (module: any, filename: string) => {
-      const compile = module._compile;
+    EXTENSIONS.forEach((ext) => {
+      Module._extensions[ext] = (module: any, filename: string) => {
+        const compile = module._compile;
 
-      module._compile = (jsCode: string) => {
-        const code = this.transpile(jsCode);
-        return compile.call(module, code, filename);
+        module._compile = (jsCode: string) => {
+          const code = this.transpile(jsCode);
+          return compile.call(module, code, filename);
+        };
+
+        jsLoader(module, filename);
       };
-
-      jsLoader(module, filename);
-    };
+    });
   }
 }
 

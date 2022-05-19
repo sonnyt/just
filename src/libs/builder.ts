@@ -1,10 +1,17 @@
-import { transformFileSync, transformSync, Options } from '@swc/core';
+import {
+  transformFileSync,
+  transformSync,
+  Options,
+  DEFAULT_EXTENSIONS,
+} from '@swc/core';
 import { copyFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
-import { basename, dirname, join, relative, resolve } from 'path';
+import { basename, dirname, join, relative, resolve, extname } from 'path';
 import { replaceTscAliasPaths } from 'tsc-alias';
 
 import { timer, error } from '../utils/logger';
 import type TSConfig from './tsconfig';
+
+export const EXTENSIONS = DEFAULT_EXTENSIONS.map((ext) => `.${ext}`);
 
 export default class Builder {
   private tsconfig: TSConfig;
@@ -70,6 +77,11 @@ export default class Builder {
     writeFileSync(filename, content);
   }
 
+  private isCompilable(filename: string) {
+    const extension = extname(filename);
+    return EXTENSIONS.includes(extension);
+  }
+
   transformCode(code: string) {
     return transformSync(code, this.options);
   }
@@ -82,8 +94,8 @@ export default class Builder {
 
     let outPath = this.outPath(filename);
 
-    // copy non .ts file
-    if (!filename.endsWith('.ts')) {
+    // copy non compilable files
+    if (!this.isCompilable(filename)) {
       return copyFileSync(filename, outPath);
     }
 
