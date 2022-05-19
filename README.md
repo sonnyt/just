@@ -27,7 +27,7 @@ npm install -g @sonnyt/just
 Compiles the application for production deployment.
 
 **Arguments**
-- `files` - glob file path to compile. If not present, `includues` from tsconfig.json is used.
+- `files` - glob file path to compile. If not present, `includes` from tsconfig.json is used.
 
 **Options**
 |Option|Default|Description|
@@ -77,7 +77,7 @@ node -r @sonnyt/just/register myscript.ts
 ```
 
 ## Default TypeScript Config
-If `tsconfig.json` file is not provided or not found. Just fallsback to using a default settings.
+If `tsconfig.json` file is not provided or not found. Just falls back to using default settings.
 
 ```JSON
 {
