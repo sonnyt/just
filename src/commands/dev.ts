@@ -1,8 +1,9 @@
 import color from 'colors/safe';
+import { createFileGlob } from 'utils/file';
 
-import TSConfig from '../libs/tsconfig';
+import { loadConfig } from '../libs/config';
 import Server from '../libs/server';
-import TypeChecker from '../libs/typechecker';
+import { checkFile, checkFiles } from '../libs/typechecker';
 import Watcher from '../libs/watcher';
 import { error, info, wait } from '../utils/logger';
 
@@ -15,24 +16,27 @@ interface Options {
 }
 
 export default async function (entry: string, options: Options) {
+  if (options.debug) {
+    info('debugger is on');
+  }
+
+  if (!options.color) {
+    color.disable();
+  }
+
   try {
-    if (options.debug) {
-      info('debugger is on');
+    const config = loadConfig(options.config);
+
+    if (options.typeCheck) {
+      const fileNames = createFileGlob(config.include, config.exclude);
+      checkFiles(fileNames, config.compilerOptions);
     }
 
-    // disable colors
-    if (!options.color) {
-      color.disable();
-    }
-
-    const tsconfig = new TSConfig({ filePath: options.config });
-    const typeChecker = new TypeChecker(tsconfig);
-    const server = new Server(tsconfig, entry, options.port);
-    const watcher = new Watcher(tsconfig);
+    const watcher = new Watcher(config.include, config.exclude);
+    const server = new Server(entry, options.config, options.port);
 
     process.on('SIGINT', () => {
-      console.log('');
-      wait('shutting down...');
+      wait('\nshutting down...');
 
       server.stop();
       watcher.stop();
@@ -40,17 +44,11 @@ export default async function (entry: string, options: Options) {
       process.exit(process.exitCode);
     });
 
-    await watcher.ready(() => {
-      if (options.typeCheck) {
-        typeChecker.check();
-      }
+    await watcher.ready(() => server.start());
 
-      server.start();
-    });
-
-    await watcher.change((filename) => {
+    await watcher.change((fileName) => {
       if (options.typeCheck) {
-        typeChecker.checkFile(filename);
+        checkFile(fileName, config.compilerOptions);
       }
 
       server.restart();

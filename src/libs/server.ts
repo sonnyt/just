@@ -9,31 +9,27 @@ import colors from 'colors/safe';
 import { resolve } from 'path';
 
 import { timer, event, wait, error } from '../utils/logger';
-import TSConfig from './tsconfig';
 
 export default class Server {
-  private entry: string;
+  private entry?: string;
+  private config: string;
   private port?: string;
   private process?: ChildProcess;
-  private tsconfig: TSConfig;
 
-  constructor(tsconfig: TSConfig, entry: string = '', port?: string) {
+  constructor(config: string, entry?: string, port?: string) {
     this.port = port ?? process.env.PORT;
+    this.config = config;
     this.entry = entry;
-    this.tsconfig = tsconfig;
   }
 
   private get options(): ForkOptions | SpawnSyncOptions {
     const options = [
       process.env['NODE_OPTIONS'],
       `-r ${require.resolve('dotenv/config')}`,
+      `-r ${require.resolve('tsconfig-paths/register')}`,
       `-r ${__dirname}/transpiler.js`,
       '--no-warnings',
     ];
-
-    if (this.tsconfig.hasPaths) {
-      options.push(`-r ${require.resolve('tsconfig-paths/register')}`);
-    }
 
     const NODE_OPTIONS = options.filter((option) => !!option).join(' ');
 
@@ -44,23 +40,20 @@ export default class Server {
         ...process.env,
         NODE_OPTIONS,
         PORT: this.port,
-        JUST_TSCONFIG: this.tsconfig.filePath,
+        JUST_TSCONFIG: this.config,
       },
     };
   }
 
   private spawn() {
+    if (!this.entry) {
+      const err = 'entry file is not provided';
+      error(err);
+      throw err;
+    }
+
     const entry = resolve(process.cwd(), this.entry);
     this.process = fork(entry, this.options);
-  }
-
-  private _start() {
-    try {
-      wait('starting server...');
-      this.spawn();
-    } catch {
-      error('server failed');
-    }
   }
 
   run(command: string, args: string[]) {
@@ -82,7 +75,12 @@ export default class Server {
       return this.restart();
     }
 
-    return this._start();
+    try {
+      wait('starting server...');
+      this.spawn();
+    } catch {
+      error('server failed');
+    }
   }
 
   stop() {

@@ -1,14 +1,13 @@
 import { FSWatcher, watch } from 'chokidar';
-import TSConfig from './tsconfig';
 
 export default class Watcher {
   private watcher: FSWatcher;
 
-  constructor(tsconfig: InstanceType<typeof TSConfig>) {
-    this.watcher = watch(tsconfig.include, {
+  constructor(include: string[], ignored: string[]) {
+    this.watcher = watch(include, {
+      ignored,
       persistent: true,
       ignoreInitial: true,
-      ignored: tsconfig.exclude,
       usePolling: true,
       useFsEvents: true,
       awaitWriteFinish: {

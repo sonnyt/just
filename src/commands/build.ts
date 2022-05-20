@@ -1,9 +1,10 @@
 import color from 'colors/safe';
 
-import TSConfig from '../libs/tsconfig';
-import TypeChecker from '../libs/typechecker';
-import Builder from '../libs/builder';
+import { loadConfig } from '../libs/config';
+import { compileFiles, replaceAliasPaths } from '../libs/compiler';
 import { error, info } from '../utils/logger';
+import { checkFiles } from 'libs/typechecker';
+import { createFileGlob } from 'utils/file';
 
 interface Options {
   transpileOnly: boolean;
@@ -13,31 +14,34 @@ interface Options {
   debug: boolean;
 }
 
-export default async function (files: string, options: Options) {
+export default async function (filePaths: string, options: Options) {
+  if (options.debug) {
+    info('debugger is on');
+  }
+
+  if (!options.color) {
+    color.disable();
+  }
+
   try {
-    if (options.debug) {
-      info('debugger is on');
-    }
+    const config = loadConfig(options.config);
 
-    // disable colors
-    if (!options.color) {
-      color.disable();
-    }
-
-    const tsconfig = new TSConfig({
-      include: files,
-      outDir: options.outDir,
-      filePath: options.config,
-    });
-
-    const builder = new Builder(tsconfig);
-    const typeChecker = new TypeChecker(tsconfig);
+    const paths = filePaths ? [filePaths] : config.include;
+    const fileNames = createFileGlob(paths, config.exclude);
 
     if (!options.transpileOnly) {
-      typeChecker.check();
+      checkFiles(fileNames, config.compilerOptions);
     }
 
-    await builder.build();
+    const outDir = options.outDir ?? config.compilerOptions.outDir ?? 'dist';
+
+    compileFiles(fileNames, config.swcOptions, outDir);
+
+    const hasPaths = Object.keys(config.compilerOptions.paths ?? {}).length > 0;
+
+    if (hasPaths) {
+      await replaceAliasPaths(options.config, outDir);
+    }
   } catch (err) {
     if (options.debug) {
       error(err);

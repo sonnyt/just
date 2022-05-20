@@ -1,47 +1,34 @@
 import InternalModule from 'module';
-import { findConfigPath } from 'utils/file';
-import Builder, { EXTENSIONS } from './builder';
 
-import TSConfig from './tsconfig';
+import { EXTENSIONS, compileCode } from './compiler';
+import { loadConfig } from './config';
+import { findConfigPath } from './../utils/file';
 
 type ModuleType = InternalModule & {
-  _extensions: Record<string, (mod: ModuleType, filename: string) => void>;
-  _compile: (code: string, filename: string) => unknown;
+  _extensions: Record<string, (mod: ModuleType, fileName: string) => void>;
+  _compile: (code: string, fileName: string) => unknown;
 };
 
 const Module = InternalModule as unknown as ModuleType;
 
-export class Transpiler {
-  private builder: Builder;
+export function register(path?: string) {
+  const filePath = findConfigPath(path);
+  const config = loadConfig(filePath);
 
-  constructor() {
-    const filePath = findConfigPath(process.env.JUST_TSCONFIG as string);
-    const tsconfig = new TSConfig({ filePath });
-    this.builder = new Builder(tsconfig);
-  }
+  const jsLoader = Module._extensions['.js'];
 
-  private transpile(code: string) {
-    const response = this.builder.transformCode(code);
-    return response.code;
-  }
+  EXTENSIONS.forEach((ext) => {
+    Module._extensions[ext] = (module: any, fileName: string) => {
+      const compile = module._compile;
 
-  loader() {
-    const jsLoader = Module._extensions['.js'];
-
-    EXTENSIONS.forEach((ext) => {
-      Module._extensions[ext] = (module: any, filename: string) => {
-        const compile = module._compile;
-
-        module._compile = (jsCode: string) => {
-          const code = this.transpile(jsCode);
-          return compile.call(module, code, filename);
-        };
-
-        jsLoader(module, filename);
+      module._compile = (jsCode: string) => {
+        const code = compileCode(jsCode, config.swcOptions);
+        return compile.call(module, code, fileName);
       };
-    });
-  }
+
+      jsLoader(module, fileName);
+    };
+  });
 }
 
-const transpiler = new Transpiler();
-export default transpiler.loader();
+export default register();

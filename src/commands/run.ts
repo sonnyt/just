@@ -1,7 +1,6 @@
 import color from 'colors/safe';
 
 import Server from '../libs/server';
-import TSConfig from '../libs/tsconfig';
 import { error, info, wait } from '../utils/logger';
 
 interface Options {
@@ -11,28 +10,21 @@ interface Options {
 }
 
 export default async function (cmd: string, args: string[], options: Options) {
+  if (options.debug) {
+    info('debugger is on');
+  }
+
+  if (!options.color) {
+    color.disable();
+  }
+
   try {
-    if (options.debug) {
-      info('debugger is on');
-    }
-
-    // disable colors
-    if (!options.color) {
-      color.disable();
-    }
-
-    const tsconfig = new TSConfig({ filePath: options.config });
-    const server = new Server(tsconfig);
-
     process.on('SIGINT', () => {
-      console.log('');
-      wait('shutting down...');
-
-      server.stop();
-
+      wait('\nshutting down...');
       process.exit(process.exitCode);
     });
 
+    const server = new Server(options.config);
     server.run(cmd, args);
   } catch (err) {
     if (options.debug) {
