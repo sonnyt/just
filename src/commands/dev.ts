@@ -1,6 +1,5 @@
 import color from 'colors/safe';
-import { createFileGlob } from 'utils/file';
-
+import { createFileGlob } from '../utils/file';
 import { loadConfig } from '../libs/config';
 import Server from '../libs/server';
 import { checkFile, checkFiles } from '../libs/typechecker';
