@@ -22,7 +22,7 @@ export function register(path?: string) {
       const compile = module._compile;
 
       module._compile = (jsCode: string) => {
-        const code = compileCode(jsCode, config.swcOptions);
+        const { code } = compileCode(jsCode, config.swcOptions);
         return compile.call(module, code, fileName);
       };
 

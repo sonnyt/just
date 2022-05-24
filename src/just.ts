@@ -2,7 +2,6 @@
 import { Command } from 'commander';
 
 import { version } from '../package.json';
-import { findConfigPath, findEntryPath } from './utils/file';
 import runAction from './commands/run';
 import buildAction from './commands/build';
 import devAction from './commands/dev';
@@ -23,7 +22,7 @@ run.action(runAction);
 
 const dev = program.command('dev');
 dev.description('starts the application in development mode');
-dev.argument('[entry]', 'server entry file', findEntryPath);
+dev.argument('[entry]', 'server entry file');
 dev.option('-p, --port <port>', 'server port');
 dev.option('--type-check', 'enable type checking');
 dev.action(devAction);
@@ -41,8 +40,7 @@ program.commands.forEach((cmd) => {
   cmd.option('--debug', 'log error messages', process.env.JUST_DEBUG ?? false);
   cmd.option(
     '-c, --config <config>',
-    'tsconfig.json or jsconfig.json configuration file',
-    findConfigPath
+    'tsconfig.json or jsconfig.json configuration file'
   );
 });
 

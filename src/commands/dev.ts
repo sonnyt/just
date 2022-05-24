@@ -1,5 +1,5 @@
 import color from 'colors/safe';
-import { createFileGlob } from '../utils/file';
+import { createFileGlob, findConfigPath, findEntryPath } from '../utils/file';
 import { loadConfig } from '../libs/config';
 import Server from '../libs/server';
 import { checkFile, checkFiles } from '../libs/typechecker';
@@ -24,15 +24,18 @@ export default async function (entry: string, options: Options) {
   }
 
   try {
-    const config = loadConfig(options.config);
+    const configPath = findConfigPath(options.config);
+    const config = loadConfig(configPath);
 
     if (options.typeCheck) {
       const fileNames = createFileGlob(config.include, config.exclude);
       checkFiles(fileNames, config.compilerOptions);
     }
 
+    const entryPath = findEntryPath(entry);
+    const server = new Server(configPath, entryPath, options.port);
+
     const watcher = new Watcher(config.include, config.exclude);
-    const server = new Server(entry, options.config, options.port);
 
     process.on('SIGINT', () => {
       wait('\nshutting down...');

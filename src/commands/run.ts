@@ -2,6 +2,7 @@ import color from 'colors/safe';
 
 import Server from '../libs/server';
 import { error, info, wait } from '../utils/logger';
+import { findConfigPath } from '../utils/file';
 
 interface Options {
   config: string;
@@ -24,7 +25,8 @@ export default async function (cmd: string, args: string[], options: Options) {
       process.exit(process.exitCode);
     });
 
-    const server = new Server(options.config);
+    const configPath = findConfigPath(options.config);
+    const server = new Server(configPath);
     server.run(cmd, args);
   } catch (err) {
     if (options.debug) {

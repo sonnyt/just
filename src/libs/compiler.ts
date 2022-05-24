@@ -1,16 +1,11 @@
-import {
-  transformFileSync,
-  transformSync,
-  Options,
-  DEFAULT_EXTENSIONS,
-} from '@swc/core';
+import { transformFileSync, transformSync, Options } from '@swc/core';
 import { replaceTscAliasPaths } from 'tsc-alias';
 import { copyFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
 import { basename, dirname, join, relative, resolve, extname } from 'path';
 
 import { timer, error } from '../utils/logger';
 
-export const EXTENSIONS = DEFAULT_EXTENSIONS.map((ext) => `.${ext}`);
+export const EXTENSIONS = ['.ts', '.tsx'];
 
 function writeFile(fileName: string, content: string, map?: string) {
   const outDir = dirname(fileName);

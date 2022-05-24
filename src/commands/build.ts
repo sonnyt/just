@@ -4,7 +4,7 @@ import { loadConfig } from '../libs/config';
 import { compileFiles, replaceAliasPaths } from '../libs/compiler';
 import { error, info } from '../utils/logger';
 import { checkFiles } from '../libs/typechecker';
-import { createFileGlob } from '../utils/file';
+import { createFileGlob, findConfigPath } from '../utils/file';
 
 interface Options {
   transpileOnly: boolean;
@@ -24,7 +24,8 @@ export default async function (filePaths: string, options: Options) {
   }
 
   try {
-    const config = loadConfig(options.config);
+    const configPath = findConfigPath(options.config);
+    const config = loadConfig(configPath);
 
     const paths = filePaths ? [filePaths] : config.include;
     const fileNames = createFileGlob(paths, config.exclude);
@@ -40,7 +41,7 @@ export default async function (filePaths: string, options: Options) {
     const hasPaths = Object.keys(config.compilerOptions.paths ?? {}).length > 0;
 
     if (hasPaths) {
-      await replaceAliasPaths(options.config, outDir);
+      await replaceAliasPaths(configPath, outDir);
     }
   } catch (err) {
     if (options.debug) {

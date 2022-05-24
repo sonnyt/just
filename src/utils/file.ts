@@ -1,11 +1,10 @@
-import { InvalidArgumentError } from 'commander';
 import dirGlob from 'dir-glob';
 import { readFileSync, existsSync } from 'fs';
 import glob from 'glob';
 import { resolve } from 'path';
 import stripJsonComments from 'strip-json-comments';
 
-import { info } from './logger';
+import { error, info } from './logger';
 
 export function readJSONFile(path: string) {
   if (!existsSync(path)) {
@@ -52,17 +51,14 @@ export function findEntryPath(path: string) {
 
   const packageFilePath = resolve(process.cwd(), 'package.json');
 
-  try {
-    const json = readJSONFile(packageFilePath);
+  const json = readJSONFile(packageFilePath);
 
-    if (!json.main) {
-      throw new Error('Missing main property');
-    }
-
-    return json.main;
-  } catch {
-    throw new InvalidArgumentError('Entry path is not found');
+  if (!json.main) {
+    error('entry path is not found');
+    throw new Error("package doesn't contain main property");
   }
+
+  return json.main;
 }
 
 export function createDirGlob(paths: string, extensions: string[] = []) {
