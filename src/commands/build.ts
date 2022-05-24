@@ -3,8 +3,8 @@ import color from 'colors/safe';
 import { loadConfig } from '../libs/config';
 import { compileFiles, replaceAliasPaths } from '../libs/compiler';
 import { error, info } from '../utils/logger';
-import { checkFiles } from 'libs/typechecker';
-import { createFileGlob } from 'utils/file';
+import { checkFiles } from '../libs/typechecker';
+import { createFileGlob } from '../utils/file';
 
 interface Options {
   transpileOnly: boolean;
