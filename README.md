@@ -134,6 +134,7 @@ Based on the `paths` [configuration](https://www.typescriptlang.org/tsconfig#pat
 
 ## Roadmap
 - Build watch option
+- Init option - copy over the default config file to the working directory.
 - [TypeScript ESLint](https://typescript-eslint.io/) support
 - [Prettier](https://www.npmjs.com/package/prettier-eslint) support
 - ~~`jsconfig.json` support~~
