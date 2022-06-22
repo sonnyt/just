@@ -32,7 +32,7 @@ function resolveOutPath(fileName: string, outDir: string) {
   const components = relativePath.split('/').slice(1);
 
   if (!components.length) {
-    return fileName;
+    return join(outDir, fileName);
   }
 
   while (components[0] === '..') {
