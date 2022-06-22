@@ -61,7 +61,7 @@ export function findEntryPath(path: string) {
   return json.main;
 }
 
-export function createDirGlob(paths: string, extensions: string[] = []) {
+export function createDirGlob(paths: string, extensions?: string[]) {
   return dirGlob.sync(paths, {
     extensions,
     cwd: process.cwd(),
