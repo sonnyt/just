@@ -41,6 +41,7 @@ export default class Server {
         NODE_OPTIONS,
         PORT: this.port,
         JUST_TSCONFIG: this.config,
+        TS_NODE_PROJECT: this.config,
       },
     };
   }

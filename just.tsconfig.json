@@ -5,6 +5,7 @@
     "moduleResolution": "Node",
     "inlineSourceMap": true,
     "strict": true,
+    "baseUrl": "./",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "esModuleInterop": true,
@@ -13,6 +14,10 @@
     "outDir": "dist",
     "paths": {}
   },
-  "include": ["./"],
-  "exclude": ["node_modules"]
+  "include": [
+    "./"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }
