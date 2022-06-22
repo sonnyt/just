@@ -1,8 +1,8 @@
+import { CompilerOptions, convertCompilerOptionsFromJson } from 'typescript';
 import { Options } from '@swc/core';
 
 import { error } from '../utils/logger';
 import { createDirGlob, readJSONFile } from '../utils/file';
-import { CompilerOptions, convertCompilerOptionsFromJson } from 'typescript';
 
 export const TARGETS = [
   'es3',
@@ -27,7 +27,7 @@ function loadFile(fileName: string) {
 }
 
 function validateTarget(target: string) {
-  const optionTarget = target.toLowerCase();
+  const optionTarget = target?.toLowerCase();
 
   if (!TARGETS.includes(optionTarget)) {
     const err = `target must be one of: ${TARGETS.join(',')}`;
@@ -44,7 +44,6 @@ function convertCompilerOptions(compilerOptions: any) {
 
   if (errors.length) {
     error('failed to parse the config option');
-    console.log(errors);
     throw errors;
   }
 
