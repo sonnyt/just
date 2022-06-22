@@ -7,6 +7,7 @@ import {
 } from 'child_process';
 import colors from 'colors/safe';
 import { resolve } from 'path';
+import { sync as whichSync } from 'which';
 
 import { timer, event, wait, error } from '../utils/logger';
 
@@ -46,7 +47,7 @@ export default class Server {
     };
   }
 
-  private spawn() {
+  private fork() {
     if (!this.entry) {
       const err = 'entry file is not provided';
       error(err);
@@ -57,18 +58,46 @@ export default class Server {
     this.process = fork(entry, this.options);
   }
 
-  run(command: string, args: string[]) {
+  private runScript(command: string, args: string[]) {
     try {
       const time = timer();
+
       time.start('running script...');
 
       event(colors.cyan(`${command} ${args.join(' ')}`));
       spawnSync(command, args, this.options);
 
       time.end('ran script successfully');
-    } catch {
+    } catch (err) {
       error('script failed');
+      throw err;
     }
+  }
+
+  private runFile(file: string) {
+    try {
+      const time = timer();
+
+      time.start('running file...');
+
+      event(colors.cyan(file));
+      fork(file, this.options);
+
+      time.end('ran file successfully');
+    } catch (err) {
+      error('run failed');
+      throw err;
+    }
+  }
+
+  run(command: string, args: string[]) {
+    const isScript = whichSync(command, { nothrow: true });
+
+    if (isScript) {
+      return this.runScript(command, args);
+    }
+
+    return this.runFile(command);
   }
 
   start() {
@@ -78,7 +107,7 @@ export default class Server {
 
     try {
       wait('starting server...');
-      this.spawn();
+      this.fork();
     } catch {
       error('server failed');
     }
@@ -97,7 +126,7 @@ export default class Server {
       wait('restarting server...');
 
       this.stop();
-      this.spawn();
+      this.fork();
     } catch {
       error('server failed');
     }
