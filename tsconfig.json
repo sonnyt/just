@@ -11,7 +11,7 @@
     "baseUrl": "src",
     "skipLibCheck": true,
     "importHelpers": true,
-    "strict": true,
+    "strict": true
   },
   "include": [
     "src"
