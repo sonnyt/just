@@ -35,7 +35,7 @@
   },
   "homepage": "https://github.com/sonnyt/just#readme",
   "dependencies": {
-    "@swc/core": "^1.2.164",
+    "@swc/core": "^1.2.207",
     "chokidar": "^3.5.3",
     "colors": "^1.4.0",
     "commander": "^9.1.0",
