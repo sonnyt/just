@@ -130,6 +130,9 @@ export function cleanOutDir(outDir: string) {
  */
 export async function copyStaticFile(fileName: string, outDir: string) {
   const outputPath = resolveOutPath(fileName, outDir);
+
+  debug(`copying ${fileName} to ${outDir}`);
+
   return copyFile(fileName, outputPath);
 }
 
