@@ -133,11 +133,14 @@ Based on the `paths` [configuration](https://www.typescriptlang.org/tsconfig#pat
 ### Does Just work with ES Modules?
 Currently, Just only supports building ES Module files.
 
-### What's the REPL usecase?
-Just REPL enables you to directly execute TypeScript files on Node.js without precompiling. It serves as a replacement for [ts-node](https://www.npmjs.com/package/ts-node).
+### What's the REPL use case?
+Just REPL enables you to execute TypeScript files on Node.js directly without precompiling. It serves as a replacement for [ts-node](https://www.npmjs.com/package/ts-node).
 
 ### Does Just compile alias paths?
 Out of the box, Just supports build and runtime path aliases. All output file alias imports are replaced with relative paths.
+
+### What happens to my non-JavaScript/TypeScript files?
+If your source directory includes noncompilable files (i.e., JSON, SVG, etc.), Just automatically copies them to your output directory.
 
 ## Roadmap
 - Build watch option
