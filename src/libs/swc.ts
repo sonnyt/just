@@ -6,6 +6,13 @@ import { DEFAULT_EXTENSIONS, Options, transformFile, transformSync } from "@swc/
 import { createFileGlob } from "../utils/file";
 import { debug, error } from "../utils/logger";
 
+/**
+ * Resolves the source paths based on the provided paths and ignore patterns.
+ * 
+ * @param paths - An array of source paths.
+ * @param ignore - An array of patterns to ignore.
+ * @returns An object containing all the resolved paths, paths to be copied, and paths to be compiled.
+ */
 export function resolveSourcePaths(paths: string[] = [], ignore: string[] = []) {
   const all = createFileGlob(paths, ignore);
   const copy: string[] = [];
@@ -22,6 +29,13 @@ export function resolveSourcePaths(paths: string[] = [], ignore: string[] = []) 
   return { all, copy, compile };
 }
 
+/**
+ * Resolves the output path for a given file name and output directory.
+ * 
+ * @param fileName - The name of the file.
+ * @param outDir - The output directory.
+ * @returns The resolved output path.
+ */
 function resolveOutPath(fileName: string, outDir: string) {
   const relativePath = relative(process.cwd(), fileName);
   const [, ...components] = relativePath.split('/');
@@ -37,10 +51,24 @@ function resolveOutPath(fileName: string, outDir: string) {
   return join(outDir, ...components).replace(/\.\w*$/, '.js');
 }
 
+/**
+ * Resolves the source file path relative to the output path.
+ * 
+ * @param outputPath - The output path.
+ * @param fileName - The file name.
+ * @returns The resolved source file path.
+ */
 function resolveSourceFilePath(outputPath: string, fileName: string) {
   return relative(dirname(outputPath), fileName);
 }
 
+/**
+ * Writes the content to a file with the specified file name.
+ * If a source map is provided, it will be appended to the content and saved as well.
+ * @param fileName - The name of the file to write.
+ * @param content - The content to write to the file.
+ * @param map - The source map to append to the content (optional).
+ */
 async function writeOutFile(fileName: string, content: string, map?: string) {
   const outDir = dirname(fileName);
 
@@ -58,11 +86,22 @@ async function writeOutFile(fileName: string, content: string, map?: string) {
   await writeFileAsync(fileName, content);
 }
 
+/**
+ * Checks if a file is compilable based on its extension.
+ * @param fileName - The name of the file.
+ * @returns A boolean indicating if the file is compilable.
+ */
 export function isCompilable(fileName: string) {
   const extension = extname(fileName);
   return DEFAULT_EXTENSIONS.includes(extension);
 }
 
+/**
+ * Cleans the specified output directory by removing all files and directories inside it.
+ * If the directory does not exist, nothing happens.
+ * 
+ * @param outDir - The path to the output directory.
+ */
 export function cleanOutDir(outDir: string) {
   const path = resolve(process.cwd(), outDir);
 
@@ -74,6 +113,13 @@ export function cleanOutDir(outDir: string) {
   return rmSync(path, { recursive: true, force: true });
 }
 
+/**
+ * Compiles a file using SWC (a JavaScript/TypeScript compiler).
+ * @param fileName - The name of the file to compile.
+ * @param outDir - The output directory for the compiled file.
+ * @param options - Additional options for the compilation process.
+ * @returns A promise that resolves when the file is successfully compiled.
+ */
 export async function compileFile(fileName: string, outDir: string, options: Options) {
   const outputPath = resolveOutPath(fileName, outDir);
   const sourceFileName = resolveSourceFilePath(outputPath, fileName);
@@ -99,10 +145,25 @@ export async function compileFile(fileName: string, outDir: string, options: Opt
   }
 }
 
+/**
+ * Compiles an array of files using the specified options and outputs the result to the specified directory.
+ * @param fileNames - An array of file names to compile.
+ * @param outDir - The output directory for the compiled files.
+ * @param options - The options to use for compilation.
+ * @returns A promise that resolves when all files have been compiled.
+ */
 export function compileFiles(fileNames: string[], outDir: string, options: Options) {
   return Promise.all(fileNames.map((fileName) => compileFile(fileName, outDir, options)));
 }
 
+/**
+ * Compiles the given code using SWC.
+ * 
+ * @param code - The code to compile.
+ * @param filename - The name of the file being compiled.
+ * @param options - The options for the compilation.
+ * @returns The transformed code.
+ */
 export function compileCode(code: string, filename: string, options: Options) {
   return transformSync(code, { filename, ...options });
 }
