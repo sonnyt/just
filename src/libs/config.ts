@@ -12,36 +12,14 @@ import { createDirGlob } from '../utils/file';
 const CONFIG_FILES = ['tsconfig.json', 'jsconfig.json'] as const;
 
 /**
- * Returns an array of supported file extensions based on the provided compiler options.
- * @param compilerOptions - The compiler options object.
- * @returns An array of supported file extensions.
- */
-export function supportedExtensions(compilerOptions: TsConfigJson.CompilerOptions = {}) {
-  const extensions = ['ts', 'tsx'];
-
-  if (compilerOptions.allowJs) {
-    extensions.push('js', 'jsx');
-  }
-
-  if (compilerOptions.resolveJsonModule) {
-    extensions.push('json');
-  }
-
-  return extensions;
-}
-
-/**
  * Parses the given TsConfigJson object and returns a parsed configuration object.
  * @param config The TsConfigJson object to parse.
  * @returns The parsed configuration object.
  */
 export function parseConfig(config: TsConfigJson) {
-  const extensions = supportedExtensions(config.compilerOptions);
-
   return {
-    extensions,
     outDir: config.compilerOptions?.outDir ?? 'dist',
-    include: createDirGlob(config.include ?? ['./'], extensions),
+    include: createDirGlob(config.include ?? ['./']),
     exclude: createDirGlob(config.exclude ?? ['node_modules']),
   };
 }

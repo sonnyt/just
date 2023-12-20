@@ -1,10 +1,20 @@
-import { promisify } from "util";
-import { existsSync, mkdir, rmSync, writeFile } from "fs";
+import { existsSync, promises as fs } from "fs";
 import { basename, dirname, extname, join, relative, resolve } from "path";
 import { DEFAULT_EXTENSIONS, Options, transformFile, transformSync } from "@swc/core";
+export { DEFAULT_EXTENSIONS } from "@swc/core";
 
-import { createFileGlob } from "../utils/file";
+import { copyFile, createFileGlob } from "../utils/file";
 import { debug, error } from "../utils/logger";
+
+/**
+ * Checks if a file is compilable based on its extension.
+ * @param fileName - The name of the file.
+ * @returns A boolean indicating if the file is compilable.
+ */
+export function isCompilable(fileName: string) {
+  const extension = extname(fileName);
+  return DEFAULT_EXTENSIONS.includes(extension);
+}
 
 /**
  * Resolves the source paths based on the provided paths and ignore patterns.
@@ -36,7 +46,7 @@ export function resolveSourcePaths(paths: string[] = [], ignore: string[] = []) 
  * @param outDir - The output directory.
  * @returns The resolved output path.
  */
-function resolveOutPath(fileName: string, outDir: string) {
+export function resolveOutPath(fileName: string, outDir: string, extension?: string) {
   const relativePath = relative(process.cwd(), fileName);
   const [, ...components] = relativePath.split('/');
 
@@ -48,7 +58,13 @@ function resolveOutPath(fileName: string, outDir: string) {
     components.shift();
   }
 
-  return join(outDir, ...components).replace(/\.\w*$/, '.js');
+  const outPath = join(outDir, ...components);
+
+  if (extension) {
+    return outPath.replace(/\.\w*$/, `.${extension}`);
+  }
+
+  return outPath;
 }
 
 /**
@@ -58,7 +74,7 @@ function resolveOutPath(fileName: string, outDir: string) {
  * @param fileName - The file name.
  * @returns The resolved source file path.
  */
-function resolveSourceFilePath(outputPath: string, fileName: string) {
+export function resolveSourceFilePath(outputPath: string, fileName: string) {
   return relative(dirname(outputPath), fileName);
 }
 
@@ -69,31 +85,23 @@ function resolveSourceFilePath(outputPath: string, fileName: string) {
  * @param content - The content to write to the file.
  * @param map - The source map to append to the content (optional).
  */
-async function writeOutFile(fileName: string, content: string, map?: string) {
+export async function writeOutputFile(fileName: string, content: string, map?: string) {
   const outDir = dirname(fileName);
 
-  const mkdirAsync = promisify(mkdir);
-  await mkdirAsync(outDir, { recursive: true });
+  await fs.mkdir(outDir, { recursive: true });
 
-  const writeFileAsync = promisify(writeFile);
+  const writes = [];
 
   if (map) {
     const outFile = basename(fileName);
     content += `\n//# sourceMappingURL=${outFile}.map`;
-    await writeFileAsync(`${fileName}.map`, map);
+
+    writes.push(fs.writeFile(`${fileName}.map`, map));
   }
 
-  await writeFileAsync(fileName, content);
-}
+  writes.push(fs.writeFile(fileName, content));
 
-/**
- * Checks if a file is compilable based on its extension.
- * @param fileName - The name of the file.
- * @returns A boolean indicating if the file is compilable.
- */
-export function isCompilable(fileName: string) {
-  const extension = extname(fileName);
-  return DEFAULT_EXTENSIONS.includes(extension);
+  return Promise.all(writes);
 }
 
 /**
@@ -110,7 +118,29 @@ export function cleanOutDir(outDir: string) {
   }
 
   debug(`cleaning outDir: ${outDir}`);
-  return rmSync(path, { recursive: true, force: true });
+  return fs.rm(path, { recursive: true, force: true });
+}
+
+/**
+ * Copies file to the specified output directory.
+ * 
+ * @param fileName - The name of the file to be copied.
+ * @param outDir - The output directory where the file will be copied to.
+ * @returns A promise that resolves when the file is successfully copied.
+ */
+export async function copyStaticFile(fileName: string, outDir: string) {
+  const outputPath = resolveOutPath(fileName, outDir);
+  return copyFile(fileName, outputPath);
+}
+
+/**
+ * Copies files to the specified output directory.
+ * @param fileNames - An array of file names to be copied.
+ * @param outDir - The output directory where the files will be copied to.
+ * @returns A promise that resolves when all files have been copied.
+ */
+export async function copyStaticFiles(fileNames: string[], outDir: string) {
+  return Promise.all(fileNames.map((fileName) => copyStaticFile(fileName, outDir)));
 }
 
 /**
@@ -121,7 +151,7 @@ export function cleanOutDir(outDir: string) {
  * @returns A promise that resolves when the file is successfully compiled.
  */
 export async function compileFile(fileName: string, outDir: string, options: Options) {
-  const outputPath = resolveOutPath(fileName, outDir);
+  const outputPath = resolveOutPath(fileName, outDir, 'js');
   const sourceFileName = resolveSourceFilePath(outputPath, fileName);
 
   debug(`compiling ${fileName} to ${outputPath}`);
@@ -135,7 +165,7 @@ export async function compileFile(fileName: string, outDir: string, options: Opt
     });
 
     const mapContent = options.sourceMaps === true ? map : undefined;
-    await writeOutFile(outputPath, code, mapContent);
+    await writeOutputFile(outputPath, code, mapContent);
   } catch (err) {
     error(`failed to compile ${fileName}`);
 

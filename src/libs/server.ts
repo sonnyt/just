@@ -12,7 +12,7 @@ import { debug } from '../utils/logger';
  * @param port - The port number for the server (optional).
  * @returns The options object for the server.
  */
-function getOptions(JUST_TSCONFIG: string, port?: string | number) {
+export function getOptions(JUST_TSCONFIG: string, port?: string | number) {
   const flags = [
     process.env['NODE_OPTIONS'],
     `-r ${require.resolve('dotenv/config')}`,

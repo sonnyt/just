@@ -1,6 +1,8 @@
 import { watch } from 'chokidar';
 import dirGlob from 'dir-glob';
-import glob from 'glob';
+import { globSync } from 'glob';
+import { dirname } from 'path';
+import { promises as fs } from "fs";
 
 /**
  * Creates a directory glob pattern and returns matching file paths.
@@ -8,9 +10,8 @@ import glob from 'glob';
  * @param extensions - Optional array of file extensions to filter the search.
  * @returns An array of file paths that match the directory glob pattern.
  */
-export function createDirGlob(paths: string | string[], extensions?: string[]) {
+export function createDirGlob(paths: string | string[]) {
   return dirGlob.sync(paths, {
-    extensions,
     cwd: process.cwd(),
   });
 }
@@ -29,7 +30,13 @@ export function createFileGlob(paths: string[] = [], ignore: string[] = []) {
     cwd: process.cwd(),
   };
 
-  return paths.flatMap((path) => glob.sync(path, options));
+  return paths.flatMap((path) => globSync(path, options));
+}
+
+export async function copyFile(fileName: string, outputPath: string) {
+  const dirName = dirname(outputPath);
+  await fs.mkdir(dirName, { recursive: true });
+  return fs.copyFile(fileName, outputPath);
 }
 
 /**

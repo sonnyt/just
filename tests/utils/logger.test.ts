@@ -68,6 +68,20 @@ describe('logger', () => {
     expect(consoleMock).toHaveBeenCalledWith('[Just]', 'warning', '-', 'testing');
   });
 
+  it('logs debug when JUST_DEBUG is set', () => {
+    process.env.JUST_DEBUG = 'TRUE';
+    logger.debug('testing');
+    expect(consoleMock).toHaveBeenCalledTimes(1);
+    expect(consoleMock).toHaveBeenCalledWith('[Just]', 'DEBUG', '-', 'testing');
+    delete process.env.JUST_DEBUG;
+  });
+
+  it('does not log debug when JUST_DEBUG is not set', () => {
+    delete process.env.JUST_DEBUG;
+    logger.debug('testing');
+    expect(consoleMock).toHaveBeenCalledTimes(0);
+  });
+
   it('logs info', () => {
     logger.info('testing');
     expect(consoleMock).toHaveBeenCalledTimes(1);

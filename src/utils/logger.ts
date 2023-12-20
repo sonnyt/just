@@ -3,7 +3,7 @@ import colors from 'colors/safe';
 /**
  * The prefix to use for all log messages.
  */
-const prefix = '[Just]' as const;
+const PREFIX = '[Just]' as const;
 
 /**
  * Creates a timer object that can be used to measure the execution time of a code block.
@@ -87,5 +87,5 @@ export function debug(...args: unknown[]) {
  * @param args - The arguments to be logged.
  */
 export function log(...args: unknown[]) {
-  console.log(colors.blue(prefix), ...args);
+  console.log(colors.blue(PREFIX), ...args);
 }

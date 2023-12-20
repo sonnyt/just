@@ -1,49 +1,135 @@
-import colors from 'colors/safe';
 import dirGlob from 'dir-glob';
+import * as glob from 'glob';
+import fs from 'fs';
 
 import * as file from '../../src/utils/file';
 
 describe('file', () => {
+  let cwd: any;
+
   beforeEach(() => {
-    colors.disable();
+    cwd = jest
+      .spyOn(process, 'cwd')
+      .mockReturnValue('/path/to/project');
+  });
+
+  afterEach(() => {
+    cwd.mockRestore();
   });
 
   describe('createDirGlob', () => {
-    it('returns an array of matching file paths', () => {
-      const mockPaths = ['path/to/files/*.txt', 'path/to/files/*.md'];
-      const mockExtensions = ['txt', 'md'];
-      const mockGlobResult = ['path/to/files/file1.txt', 'path/to/files/file2.md'];
+    it('returns an array of matching files without extensions', () => {
+      const sync = jest
+        .spyOn(dirGlob, 'sync')
+        .mockReturnValue([
+          'path/to/files/file1',
+          'path/to/files/file2',
+        ]);
 
-      const dirGlobMock = jest.spyOn(dirGlob, 'sync').mockReturnValue(mockGlobResult);
+      const result = file.createDirGlob('path/to/files/*');
 
-      const result = file.createDirGlob(mockPaths, mockExtensions);
-
-      expect(dirGlobMock).toHaveBeenCalledWith(mockPaths, {
-        extensions: mockExtensions,
-        cwd: process.cwd(),
+      expect(sync).toHaveBeenCalledWith('path/to/files/*', {
+        extensions: undefined,
+        cwd: '/path/to/project',
       });
-      expect(result).toEqual(mockGlobResult);
 
-      dirGlobMock.mockRestore();
+      expect(result).toEqual([
+        'path/to/files/file1',
+        'path/to/files/file2',
+      ]);
+
+      sync.mockRestore();
     });
 
-    it('returns an empty array when no matching file paths are found', () => {
-      const mockPaths = 'path/to/files/*.txt';
-      const mockExtensions = ['txt'];
-      const mockGlobResult: string[] = [];
+    it('returns an array of matching files with extensions', () => {
+      const sync = jest
+        .spyOn(dirGlob, 'sync')
+        .mockReturnValue([
+          'path/to/files/*.ts',
+          'path/to/files/*.tsx',
+        ]);
 
-      const dirGlobMock = jest.spyOn(dirGlob, 'sync').mockReturnValue(mockGlobResult);
+      const result = file.createDirGlob('path/to/files/*');
 
-      const result = file.createDirGlob(mockPaths, mockExtensions);
-
-      expect(dirGlobMock).toHaveBeenCalledWith(mockPaths, {
-        extensions: mockExtensions,
-        cwd: process.cwd(),
+      expect(sync).toHaveBeenCalledWith('path/to/files/*', {
+        cwd: '/path/to/project',
       });
 
-      expect(result).toEqual(mockGlobResult);
+      expect(result).toEqual([
+        'path/to/files/*.ts',
+        'path/to/files/*.tsx',
+      ]);
 
-      dirGlobMock.mockRestore();
+      sync.mockRestore();
+    });
+  });
+
+  describe('createFileGlob', () => {
+    it('returns an array of matching files', () => {
+      const globSync = jest
+        .spyOn(glob, 'globSync')
+        .mockReturnValue([
+          'path/to/files/*.ts',
+          'path/to/files/*.tsx',
+        ]);
+
+      const result = file.createFileGlob(['path/to/files/*'], ['path/to/ignore/*']);
+
+      expect(globSync).toHaveBeenCalledWith('path/to/files/*', {
+        ignore: ['path/to/ignore/*'],
+        nodir: true,
+        cwd: '/path/to/project',
+      });
+
+      expect(result).toEqual([
+        'path/to/files/*.ts',
+        'path/to/files/*.tsx',
+      ]);
+
+      globSync.mockRestore();
+    });
+  });
+
+  describe('copyFile', () => {
+    it('copies the file to the output path', async () => {
+      const mkdir = jest
+        .spyOn(fs.promises, 'mkdir')
+        .mockResolvedValue(undefined);
+
+      const copyFile = jest
+        .spyOn(fs.promises, 'copyFile')
+        .mockResolvedValue(undefined);
+
+      await file.copyFile('path/to/file', 'path/to/output');
+
+      expect(mkdir).toHaveBeenCalledWith('path/to', { recursive: true });
+      expect(copyFile).toHaveBeenCalledWith('path/to/file', 'path/to/output');
+
+      mkdir.mockRestore();
+      copyFile.mockRestore();
+    });
+  });
+
+  describe('watchFiles', () => {
+    beforeAll(() => {
+      jest.mock('chokidar', () => ({
+        watch: jest.fn(() => ({
+          on: jest.fn(),
+          close: jest.fn(),
+        })),
+      }));
+    });
+
+    afterAll(() => {
+      jest.unmock('chokidar');
+    });
+
+    it('returns a watcher and utility functions', async () => {
+      const result = await file.watchFiles(['path/to/files/*'], ['path/to/ignore/*']);
+
+      expect(result).toHaveProperty('watcher');
+      expect(result).toHaveProperty('stop');
+      expect(result).toHaveProperty('onChange');
     });
   });
 });

@@ -1,8 +1,8 @@
 import color from 'colors/safe';
 
-import { debug, error, info, timer } from '../utils/logger';
+import { info, timer } from '../utils/logger';
 import { resolveConfigPath, loadConfig } from '../libs/config';
-import { cleanOutDir, resolveSourcePaths, compileFiles } from '../libs/swc';
+import { cleanOutDir, resolveSourcePaths, compileFiles, copyStaticFiles } from '../libs/swc';
 import { checkFiles } from '../libs/typescript';
 
 interface Options {
@@ -33,7 +33,7 @@ export default async function (filePath: string, options: Options) {
     const time = timer();
     time.start('type checking...');
 
-    typeCheckError = checkFiles(filePaths.compile, config.ts.compilerOptions!);
+    typeCheckError = checkFiles(filePaths.compile, config.ts.compilerOptions);
 
     time.end('type check');
   }
@@ -45,18 +45,12 @@ export default async function (filePath: string, options: Options) {
   const time = timer();
   time.start('building...');
 
-  cleanOutDir(config.outDir);
-  await compileFiles(filePaths.compile, config.outDir, config.swc);
+  await cleanOutDir(config.outDir);
+
+  await Promise.all([
+    compileFiles(filePaths.compile, config.outDir, config.swc),
+    copyStaticFiles(filePaths.copy, config.outDir),
+  ]);
 
   time.end('build');
-
-  process.on('unhandledRejection', err => {
-    if (process.env.JUST_DEBUG) {
-      debug(err);
-    } else {
-      error('Oops! Something went wrong!');
-    }
-
-    process.exit(1);
-  });
 }

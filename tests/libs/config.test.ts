@@ -1,37 +1,10 @@
 import process from 'process';
 import fs from 'fs';
 import * as tsToSwcConfig from 'tsconfig-to-swcconfig';
-import { supportedExtensions, parseConfig, resolveConfigPath, loadSWCConfig } from '../../src/libs/config';
+import { parseConfig, resolveConfigPath, loadSWCConfig } from '../../src/libs/config';
 
 describe('Config', () => {
-  describe('supportedExtensions', () => {
-    it('should return TypeScript extensions', () => {
-      const result = supportedExtensions({});
-      expect(result).toEqual(['ts', 'tsx']);
-    });
-
-    it('should return TypeScript and JavaScript extensions', () => {
-      const result = supportedExtensions({ allowJs: true });
-      expect(result).toEqual(['ts', 'tsx', 'js', 'jsx']);
-    });
-
-    it('should return TypeScript and JSON extensions', () => {
-      const result = supportedExtensions({ resolveJsonModule: true });
-      expect(result).toEqual(['ts', 'tsx', 'json']);
-    });
-
-    it('should return TypeScript, JavaScript and JSON extensions', () => {
-      const result = supportedExtensions({ allowJs: true, resolveJsonModule: true });
-      expect(result).toEqual(['ts', 'tsx', 'js', 'jsx', 'json']);
-    });
-  });
-
   describe('parseConfig', () => {
-    it('should parse extensions correctly', () => {
-      const result = parseConfig({ compilerOptions: {} });
-      expect(result.extensions).toEqual(['ts', 'tsx']);
-    });
-
     it('should parse outDir correctly', () => {
       const result = parseConfig({ compilerOptions: { outDir: 'build' } });
       expect(result.outDir).toEqual('build');
@@ -43,13 +16,13 @@ describe('Config', () => {
     });
 
     it('should parse include correctly', () => {
-      const result = parseConfig({ include: ['src/**/*.ts'] });
-      expect(result.include).toEqual(['src/**/*.ts']);
+      const result = parseConfig({ include: ['src'] });
+      expect(result.include).toEqual(['src/**']);
     });
 
     it('should parse default include correctly', () => {
       const result = parseConfig({});
-      expect(result.include).toEqual(['**/*.{ts,tsx}']);
+      expect(result.include).toEqual(['**']);
     });
 
     it('should parse exclude correctly', () => {
@@ -113,14 +86,22 @@ describe('Config', () => {
   });
 
   describe('loadSWCConfig', () => {
+    let cwd: any;
+
+    beforeAll(() => {
+      cwd = jest
+        .spyOn(process, 'cwd')
+        .mockReturnValue('/path/to/project');
+    });
+
+    afterAll(() => {
+      cwd.mockRestore();
+    });
+
     it('should load the SWC config correctly', () => {
       const convertTsConfig = jest
         .spyOn(tsToSwcConfig, 'convertTsConfig')
         .mockReturnValue({});
-
-      const cwd = jest
-        .spyOn(process, 'cwd')
-        .mockReturnValue('/path/to/project');
 
       const result = loadSWCConfig({});
 
@@ -131,17 +112,12 @@ describe('Config', () => {
       });
 
       convertTsConfig.mockRestore();
-      cwd.mockRestore();
     });
 
     it('should load the SWC config correctly with baseUrl', () => {
       const convertTsConfig = jest
         .spyOn(tsToSwcConfig, 'convertTsConfig')
         .mockReturnValue({ jsc: { baseUrl: 'src' } });
-
-      const cwd = jest
-        .spyOn(process, 'cwd')
-        .mockReturnValue('/path/to/project');
 
       const result = loadSWCConfig({});
 
@@ -150,7 +126,6 @@ describe('Config', () => {
       });
 
       convertTsConfig.mockRestore();
-      cwd.mockRestore();
     });
 
     it('should load the SWC config correctly with paths', () => {
@@ -164,10 +139,6 @@ describe('Config', () => {
           }
         });
 
-      const cwd = jest
-        .spyOn(process, 'cwd')
-        .mockReturnValue('/path/to/project');
-
       const result = loadSWCConfig({});
 
       expect(result.jsc).toEqual({
@@ -177,7 +148,6 @@ describe('Config', () => {
       });
 
       convertTsConfig.mockRestore();
-      cwd.mockRestore();
     });
   });
 

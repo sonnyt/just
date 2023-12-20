@@ -1,7 +1,7 @@
 import color from 'colors/safe';
 
 import { watchFiles } from '../utils/file';
-import { debug, error, event, info, timer, wait } from '../utils/logger';
+import { error, event, info, timer, wait } from '../utils/logger';
 import { loadConfig, resolveConfigPath } from '../libs/config';
 import { checkFile, checkFiles } from '../libs/typescript';
 import { createServer, resolveEntryPath, resolvePort } from '../libs/server';
@@ -32,7 +32,7 @@ export default async function (entryFile: string, options: Options) {
 
   if (options.typeCheck) {
     const filePaths = resolveSourcePaths(config.include, config.exclude);
-    typeCheckError = checkFiles(filePaths.compile, config.ts.compilerOptions!);
+    typeCheckError = checkFiles(filePaths.compile, config.ts.compilerOptions);
   }
 
   if (typeCheckError) {
@@ -49,7 +49,9 @@ export default async function (entryFile: string, options: Options) {
   const portNumber = await resolvePort(options.port);
 
   wait('starting server...');
+
   const server = createServer(entryFilePath, portNumber, configPath);
+
   event('server started on port: ' + portNumber);
 
   const watcher = await watchFiles(config.include, config.exclude);
@@ -69,7 +71,7 @@ export default async function (entryFile: string, options: Options) {
     let typeCheckError = false;
 
     if (options.typeCheck) {
-      typeCheckError = checkFile(fileName, config.ts.compilerOptions!);
+      typeCheckError = checkFile(fileName, config.ts.compilerOptions);
     }
 
     if (typeCheckError) {
@@ -87,18 +89,5 @@ export default async function (entryFile: string, options: Options) {
     watcher.stop();
     server.stop();
     process.exit(process.exitCode);
-  });
-
-  process.on('unhandledRejection', err => {
-    watcher.stop();
-    server.stop();
-
-    if (process.env.JUST_DEBUG) {
-      debug(err);
-    } else {
-      error('Oops! Something went wrong!');
-    }
-
-    process.exit(1);
   });
 }
