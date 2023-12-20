@@ -130,12 +130,20 @@ When using the [dev](#dev) or [run](#run) commands. Just automatically finds and
 Based on the `paths` [configuration](https://www.typescriptlang.org/tsconfig#paths), Just replaces all alias paths with relative paths after typescript compilation.
 
 ## FAQ
-...
+### Does Just work with ES Modules?
+Currently, Just only supports building ES Module files.
+
+### What's the REPL usecase?
+Just REPL enables you to directly execute TypeScript files on Node.js without precompiling. It serves as a replacement for [ts-node](https://www.npmjs.com/package/ts-node).
+
+### Does Just compile alias paths?
+Out of the box, Just supports build and runtime path aliases. All output file alias imports are replaced with relative paths.
 
 ## Roadmap
 - Build watch option
-- Init option - copy over the default config file to the working directory.
+- Init option - copy over the default config file to the working directory
 - [TypeScript ESLint](https://typescript-eslint.io/) support
 - [Prettier](https://www.npmjs.com/package/prettier-eslint) support
+- REPL ES module support
 - ~~`jsconfig.json` support~~
 - `.swcrc` support
