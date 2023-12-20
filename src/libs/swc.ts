@@ -1,7 +1,6 @@
 import { existsSync, promises as fs } from "fs";
 import { basename, dirname, extname, join, relative, resolve } from "path";
 import { DEFAULT_EXTENSIONS, Options, transformFile, transformSync } from "@swc/core";
-export { DEFAULT_EXTENSIONS } from "@swc/core";
 
 import { copyFile, createFileGlob } from "../utils/file";
 import { debug, error } from "../utils/logger";
@@ -24,19 +23,21 @@ export function isCompilable(fileName: string) {
  * @returns An object containing all the resolved paths, paths to be copied, and paths to be compiled.
  */
 export function resolveSourcePaths(paths: string[] = [], ignore: string[] = []) {
-  const all = createFileGlob(paths, ignore);
-  const copy: string[] = [];
-  const compile: string[] = [];
+  const files = createFileGlob(paths, ignore);
 
-  all.forEach((path: string) => {
-    if (isCompilable(path)) {
-      compile.push(path);
-    } else {
-      copy.push(path);
+  return files.reduce((result, path) => {
+    if (path.endsWith('.d.ts')) {
+      return result;
     }
-  });
 
-  return { all, copy, compile };
+    if (isCompilable(path)) {
+      result.compile.push(path);
+    } else {
+      result.copy.push(path);
+    }
+
+    return result;
+  }, { copy: [], compile: [] } as { copy: string[], compile: string[] });
 }
 
 /**

@@ -1,11 +1,13 @@
 import dirGlob from 'dir-glob';
 import * as glob from 'glob';
 import fs from 'fs';
+import chokidar from 'chokidar';
+import { EventEmitter } from 'events';
 
 import * as file from '../../src/utils/file';
 
 describe('file', () => {
-  let cwd: any;
+  let cwd: jest.SpyInstance;
 
   beforeEach(() => {
     cwd = jest
@@ -111,25 +113,85 @@ describe('file', () => {
   });
 
   describe('watchFiles', () => {
+    let watch: jest.SpyInstance;
+    const emitter = new EventEmitter();
+
     beforeAll(() => {
-      jest.mock('chokidar', () => ({
-        watch: jest.fn(() => ({
-          on: jest.fn(),
-          close: jest.fn(),
-        })),
-      }));
+      watch = jest
+        .spyOn(chokidar, 'watch')
+        .mockImplementation(() => {
+          (emitter as any).close = jest.fn();
+          return emitter as any;
+        });
     });
 
     afterAll(() => {
-      jest.unmock('chokidar');
+      watch.mockRestore();
+      emitter.removeAllListeners();
     });
 
     it('returns a watcher and utility functions', async () => {
-      const result = await file.watchFiles(['path/to/files/*'], ['path/to/ignore/*']);
+      const watchFiles = file.watchFiles(['path/to/files/*'], ['path/to/ignore/*']);
+
+      emitter.emit('ready');
+
+      const result = await watchFiles;
 
       expect(result).toHaveProperty('watcher');
       expect(result).toHaveProperty('stop');
       expect(result).toHaveProperty('onChange');
+    });
+
+    it('stops the watcher', async () => {
+      const watchFiles = file.watchFiles(['path/to/files/*'], ['path/to/ignore/*']);
+
+      emitter.emit('ready');
+
+      const result = await watchFiles;
+
+      result.stop();
+
+      expect((emitter as any).close).toHaveBeenCalled();
+    });
+
+    it('calls the onChange callback when a file is added or changed', async () => {
+      const watchFiles = file.watchFiles(['path/to/files/*'], ['path/to/ignore/*']);
+
+      emitter.emit('ready');
+
+      const result = await watchFiles;
+
+      const onChange = jest.fn();
+      result.onChange(onChange);
+
+      emitter.emit('add', 'path/to/file');
+      emitter.emit('change', 'path/to/file');
+
+      expect(onChange).toHaveBeenCalledTimes(2);
+    });
+
+    it('calls the onRemove callback when a file is removed', async () => {
+      const watchFiles = file.watchFiles(['path/to/files/*'], ['path/to/ignore/*']);
+
+      emitter.emit('ready');
+
+      const result = await watchFiles;
+
+      const onRemove = jest.fn();
+      result.onRemove(onRemove);
+
+      emitter.emit('unlink', 'path/to/file');
+
+      expect(onRemove).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejects the promise if the watcher emits an error', async () => {
+      const watchFiles = file.watchFiles(['path/to/files/*'], ['path/to/ignore/*']);
+
+      const error = new Error('Watcher error');
+      emitter.emit('error', error);
+
+      await expect(watchFiles).rejects.toThrow(error);
     });
   });
 });

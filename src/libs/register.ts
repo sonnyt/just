@@ -1,7 +1,9 @@
 import InternalModule from 'module';
 
 import { loadConfig, resolveConfigPath } from './config';
-import { compileCode, DEFAULT_EXTENSIONS } from './swc';
+import { compileCode } from './swc';
+
+const EXTENSIONS = ['.ts', '.tsx', '.cts', '.mts'] as const;
 
 type ModuleType = InternalModule & {
   _extensions: Record<string, (mod: ModuleType, fileName: string) => void>;
@@ -16,7 +18,7 @@ export function register() {
 
   const jsLoader = Module._extensions['.js'];
 
-  DEFAULT_EXTENSIONS.forEach((ext) => {
+  EXTENSIONS.forEach((ext) => {
     Module._extensions[ext] = (module: any, fileName: string) => {
       const compile = module._compile;
 

@@ -33,6 +33,12 @@ export function createFileGlob(paths: string[] = [], ignore: string[] = []) {
   return paths.flatMap((path) => globSync(path, options));
 }
 
+/**
+ * Copies a file to the specified output path.
+ * @param fileName - The name of the file to be copied.
+ * @param outputPath - The path where the file should be copied to.
+ * @returns A promise that resolves when the file is successfully copied.
+ */
 export async function copyFile(fileName: string, outputPath: string) {
   const dirName = dirname(outputPath);
   await fs.mkdir(dirName, { recursive: true });

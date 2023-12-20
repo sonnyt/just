@@ -19,7 +19,7 @@ describe('server', () => {
   });
 
   describe('resolveEntryPath', () => {
-    let cwd: any;
+    let cwd: jest.SpyInstance;
 
     beforeAll(() => {
       cwd = jest

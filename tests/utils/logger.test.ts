@@ -2,7 +2,7 @@ import colors from 'colors/safe';
 import * as logger from '../../src/utils/logger';
 
 describe('logger', () => {
-  let consoleMock: any;
+  let consoleMock: jest.SpyInstance;
 
   beforeEach(() => {
     consoleMock = jest.spyOn(console, 'log').mockImplementation();

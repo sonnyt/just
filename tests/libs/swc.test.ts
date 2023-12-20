@@ -30,10 +30,6 @@ describe('swc', () => {
       ]);
 
       expect(result).toEqual({
-        all: [
-          'path/to/files/file1.ts',
-          'path/to/files/file2.json',
-        ],
         copy: [
           'path/to/files/file2.json',
         ],

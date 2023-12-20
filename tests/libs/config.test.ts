@@ -86,7 +86,7 @@ describe('Config', () => {
   });
 
   describe('loadSWCConfig', () => {
-    let cwd: any;
+    let cwd: jest.SpyInstance;
 
     beforeAll(() => {
       cwd = jest
