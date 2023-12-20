@@ -1,10 +1,9 @@
 import color from 'colors/safe';
 
-import { loadConfig } from '../libs/config';
-import { compileFiles, replaceAliasPaths } from '../libs/compiler';
-import { error, info } from '../utils/logger';
-import { checkFiles } from '../libs/typechecker';
-import { createFileGlob, findConfigPath } from '../utils/file';
+import { debug, error, info, timer } from '../utils/logger';
+import { resolveConfigPath, loadConfig } from '../libs/config';
+import { cleanOutDir, resolveSourcePaths, compileFiles } from '../libs/swc';
+import { checkFiles } from '../libs/typescript';
 
 interface Options {
   transpileOnly: boolean;
@@ -14,8 +13,9 @@ interface Options {
   debug: boolean;
 }
 
-export default async function (filePaths: string, options: Options) {
+export default async function (filePath: string, options: Options) {
   if (options.debug) {
+    process.env.JUST_DEBUG = 'TRUE';
     info('debugger is on');
   }
 
@@ -23,29 +23,40 @@ export default async function (filePaths: string, options: Options) {
     color.disable();
   }
 
-  try {
-    const configPath = findConfigPath(options.config);
-    const config = loadConfig(configPath);
+  const configPath = resolveConfigPath(options.config);
+  const config = loadConfig(configPath);
+  const filePaths = resolveSourcePaths(filePath ? [filePath] : config.include, config.exclude);
 
-    const paths = filePaths ? [filePaths] : config.include;
-    const fileNames = createFileGlob(paths, config.exclude);
+  let typeCheckError = false;
 
-    if (!options.transpileOnly) {
-      checkFiles(fileNames, config.compilerOptions);
-    }
+  if (!options.transpileOnly) {
+    const time = timer();
+    time.start('type checking...');
 
-    const outDir = options.outDir ?? config.compilerOptions.outDir ?? 'dist';
+    typeCheckError = checkFiles(filePaths.compile, config.ts.compilerOptions!);
 
-    compileFiles(fileNames, config.swcOptions, outDir);
-
-    const hasPaths = Object.keys(config.compilerOptions.paths ?? {}).length > 0;
-
-    if (hasPaths) {
-      await replaceAliasPaths(configPath, outDir);
-    }
-  } catch (err) {
-    if (options.debug) {
-      error(err);
-    }
+    time.end('type check');
   }
+
+  if (typeCheckError) {
+    return;
+  }
+
+  const time = timer();
+  time.start('building...');
+
+  cleanOutDir(config.outDir);
+  await compileFiles(filePaths.compile, config.outDir, config.swc);
+
+  time.end('build');
+
+  process.on('unhandledRejection', err => {
+    if (process.env.JUST_DEBUG) {
+      debug(err);
+    } else {
+      error('Oops! Something went wrong!');
+    }
+
+    process.exit(1);
+  });
 }

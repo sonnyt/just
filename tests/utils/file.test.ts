@@ -1,47 +1,49 @@
 import colors from 'colors/safe';
-import fs from 'fs';
+import dirGlob from 'dir-glob';
+
 import * as file from '../../src/utils/file';
-import { getError, NoErrorThrownError } from '../helpers';
 
 describe('file', () => {
   beforeEach(() => {
     colors.disable();
   });
 
-  describe('reads JSON file', () => {
-    it('fails', async () => {
-      const mockFile = 'no_file.json';
-      const existsMock = jest.spyOn(fs, 'existsSync').mockImplementation();
+  describe('createDirGlob', () => {
+    it('returns an array of matching file paths', () => {
+      const mockPaths = ['path/to/files/*.txt', 'path/to/files/*.md'];
+      const mockExtensions = ['txt', 'md'];
+      const mockGlobResult = ['path/to/files/file1.txt', 'path/to/files/file2.md'];
 
-      const error = await getError(() => file.readJSONFile(mockFile));
+      const dirGlobMock = jest.spyOn(dirGlob, 'sync').mockReturnValue(mockGlobResult);
 
-      expect(existsMock).toBeCalledWith(mockFile);
-      expect(error).not.toBeInstanceOf(NoErrorThrownError);
-      expect(error.message).toBe('no_file.json not found');
+      const result = file.createDirGlob(mockPaths, mockExtensions);
 
-      existsMock.mockRestore();
+      expect(dirGlobMock).toHaveBeenCalledWith(mockPaths, {
+        extensions: mockExtensions,
+        cwd: process.cwd(),
+      });
+      expect(result).toEqual(mockGlobResult);
+
+      dirGlobMock.mockRestore();
     });
 
-    it('loads file', () => {
-      const mockFile = 'file.json';
-      const mockData = { data: 'test' };
+    it('returns an empty array when no matching file paths are found', () => {
+      const mockPaths = 'path/to/files/*.txt';
+      const mockExtensions = ['txt'];
+      const mockGlobResult: string[] = [];
 
-      const existsMock = jest.spyOn(fs, 'existsSync').mockReturnValue(true);
-      const readFileMock = jest.spyOn(fs, 'readFileSync').mockImplementation(
-        () =>
-          ({
-            toString: () => JSON.stringify(mockData),
-          } as any)
-      );
+      const dirGlobMock = jest.spyOn(dirGlob, 'sync').mockReturnValue(mockGlobResult);
 
-      const content = file.readJSONFile('file.json');
+      const result = file.createDirGlob(mockPaths, mockExtensions);
 
-      expect(existsMock).toBeCalledWith(mockFile);
-      expect(readFileMock).toBeCalledWith(mockFile, 'utf-8');
-      expect(content).toStrictEqual(mockData);
+      expect(dirGlobMock).toHaveBeenCalledWith(mockPaths, {
+        extensions: mockExtensions,
+        cwd: process.cwd(),
+      });
 
-      existsMock.mockRestore();
-      readFileMock.mockRestore();
+      expect(result).toEqual(mockGlobResult);
+
+      dirGlobMock.mockRestore();
     });
   });
 });

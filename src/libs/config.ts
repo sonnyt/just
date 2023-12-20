@@ -1,126 +1,91 @@
-import { CompilerOptions, convertCompilerOptionsFromJson } from 'typescript';
-import { Options } from '@swc/core';
+import { convertTsConfig } from 'tsconfig-to-swcconfig';
+import { parseTsconfig, TsConfigJson } from 'get-tsconfig';
+import { existsSync } from 'fs';
+import { resolve } from 'path';
 
-import { error } from '../utils/logger';
-import { createDirGlob, readJSONFile } from '../utils/file';
+import { debug } from '../utils/logger';
+import { createDirGlob } from '../utils/file';
 
-export const TARGETS = [
-  'es3',
-  'es5',
-  'es2015',
-  'es2016',
-  'es2017',
-  'es2018',
-  'es2019',
-  'es2020',
-  'es2021',
-  'es2022',
-];
+const CONFIG_FILES = ['tsconfig.json', 'jsconfig.json'] as const;
 
-function loadFile(fileName: string) {
-  try {
-    return readJSONFile(fileName);
-  } catch (err) {
-    error('failed to load the config file');
-    throw err;
-  }
-}
-
-function validateTarget(target: string) {
-  const optionTarget = target?.toLowerCase();
-
-  if (!TARGETS.includes(optionTarget)) {
-    const err = `target must be one of: ${TARGETS.join(',')}`;
-    error(err);
-    throw err;
-  }
-}
-
-function convertCompilerOptions(compilerOptions: any) {
-  const { options, errors } = convertCompilerOptionsFromJson(
-    compilerOptions,
-    ''
-  );
-
-  if (errors.length) {
-    error('failed to parse the config option');
-    throw errors;
-  }
-
-  return options;
-}
-
-function convertSWCOptions(compilerOptions: any): Options {
-  let sourceMaps: boolean | 'inline' = false;
-
-  if (compilerOptions.inlineSourceMap) {
-    sourceMaps = 'inline';
-  }
-
-  if (compilerOptions.sourceMap) {
-    sourceMaps = true;
-  }
-
-  return {
-    swcrc: false,
-    minify: false,
-    isModule: true,
-    configFile: false,
-    cwd: process.cwd(),
-    inlineSourcesContent: true,
-    sourceMaps,
-    jsc: {
-      keepClassNames: true,
-      baseUrl: compilerOptions.baseUrl,
-      target: compilerOptions.target.toLowerCase(),
-      parser: {
-        syntax: 'typescript',
-        decorators: compilerOptions.experimentalDecorators,
-        dynamicImport: compilerOptions.dynamicImport,
-      },
-      transform: {
-        legacyDecorator: compilerOptions.experimentalDecorators,
-        decoratorMetadata: compilerOptions.emitDecoratorMetadata,
-      },
-      minify: {
-        compress: false,
-        mangle: false,
-      },
-    },
-    module: {
-      type: 'commonjs',
-      noInterop: !(compilerOptions.esModuleInterop ?? true),
-    },
-  };
-}
-
-function fileExtensions(compilerOptions: CompilerOptions) {
+export function supportedExtensions(compilerOptions: TsConfigJson.CompilerOptions = {}) {
   const extensions = ['ts', 'tsx'];
 
-  if (compilerOptions?.allowJs) {
-    extensions.concat(['js', 'jsx']);
+  if (compilerOptions.allowJs) {
+    extensions.push('js', 'jsx');
   }
 
-  if (compilerOptions?.resolveJsonModule) {
+  if (compilerOptions.resolveJsonModule) {
     extensions.push('json');
   }
 
   return extensions;
 }
 
-export function loadConfig(fileName: string) {
-  const options = loadFile(fileName);
-
-  validateTarget(options?.compilerOptions?.target);
-
-  const compilerOptions = convertCompilerOptions(options?.compilerOptions);
-  const swcOptions = convertSWCOptions(options?.compilerOptions);
-  const extensions = fileExtensions(compilerOptions);
+export function parseConfig(config: TsConfigJson) {
+  const extensions = supportedExtensions(config.compilerOptions);
 
   return {
-    swcOptions,
-    compilerOptions,
-    include: createDirGlob(options.include ?? ['./'], extensions),
-    exclude: createDirGlob(options.exclude ?? ['node_modules']),
+    extensions,
+    outDir: config.compilerOptions?.outDir ?? 'dist',
+    include: createDirGlob(config.include ?? ['./'], extensions),
+    exclude: createDirGlob(config.exclude ?? ['node_modules']),
   };
+}
+
+export function resolveConfigPath(path?: string) {
+  if (path) {
+    debug(`using config file: ${path}`);
+    return resolve(process.cwd(), path);
+  }
+
+  if (process.env.JUST_TSCONFIG) {
+    debug(`using config file: ${process.env.JUST_TSCONFIG}`);
+    return resolve(process.cwd(), process.env.JUST_TSCONFIG);
+  }
+
+  const filePath = CONFIG_FILES.find((file) => {
+    const resolvedPath = resolve(process.cwd(), file);
+    return existsSync(resolvedPath);
+  });
+
+  if (filePath) {
+    debug(`using config file: ${filePath}`);
+    return filePath;
+  }
+
+  debug(
+    `config file is missing, falling back to default configuration.`
+  );
+
+  return resolve(__dirname, '..', '..', 'just.tsconfig.json');
+}
+
+export function loadSWCConfig(compilerOptions: TsConfigJson.CompilerOptions = {}) {
+  const config = convertTsConfig(compilerOptions);
+
+  config.cwd = process.cwd();
+  config.configFile = false;
+  config.swcrc = false;
+
+  if (config.jsc?.baseUrl) {
+    config.jsc.baseUrl = resolve(process.cwd(), config.jsc.baseUrl);
+  }
+
+  if (config.jsc?.paths) {
+    Object.entries(config.jsc.paths).forEach(([key, paths]) => {
+      config.jsc!.paths![key] = paths.map((path) =>
+        resolve(process.cwd(), path)
+      );
+    });
+  }
+
+  return config;
+}
+
+export function loadConfig(path: string) {
+  const ts = parseTsconfig(path);
+  const swc = loadSWCConfig(ts.compilerOptions);
+  const config = parseConfig(ts);
+  return { ts, swc, ...config };
 }

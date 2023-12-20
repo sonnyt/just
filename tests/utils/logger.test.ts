@@ -15,8 +15,8 @@ describe('logger', () => {
 
   it('adds prefix', () => {
     logger.log('testing');
-    expect(consoleMock).toBeCalledTimes(1);
-    expect(consoleMock).toBeCalledWith('[Just]', 'testing');
+    expect(consoleMock).toHaveBeenCalledTimes(1);
+    expect(consoleMock).toHaveBeenCalledWith('[Just]', 'testing');
   });
 
   it('logs timer', () => {
@@ -24,7 +24,7 @@ describe('logger', () => {
     timer.start('start testing');
     timer.end('end testing');
 
-    expect(consoleMock).toBeCalledTimes(2);
+    expect(consoleMock).toHaveBeenCalledTimes(2);
     expect(consoleMock).toHaveBeenNthCalledWith(
       1,
       '[Just]',
@@ -46,31 +46,31 @@ describe('logger', () => {
 
   it('logs wait', () => {
     logger.wait('testing');
-    expect(consoleMock).toBeCalledTimes(1);
-    expect(consoleMock).toBeCalledWith('[Just]', 'wait', '-', 'testing');
+    expect(consoleMock).toHaveBeenCalledTimes(1);
+    expect(consoleMock).toHaveBeenCalledWith('[Just]', 'wait', '-', 'testing');
   });
 
   it('logs event', () => {
     logger.event('testing');
-    expect(consoleMock).toBeCalledTimes(1);
-    expect(consoleMock).toBeCalledWith('[Just]', 'event', '-', 'testing');
+    expect(consoleMock).toHaveBeenCalledTimes(1);
+    expect(consoleMock).toHaveBeenCalledWith('[Just]', 'event', '-', 'testing');
   });
 
   it('logs error', () => {
     logger.error('testing');
-    expect(consoleMock).toBeCalledTimes(1);
-    expect(consoleMock).toBeCalledWith('[Just]', 'error', '-', 'testing');
+    expect(consoleMock).toHaveBeenCalledTimes(1);
+    expect(consoleMock).toHaveBeenCalledWith('[Just]', 'error', '-', 'testing');
   });
 
   it('logs warning', () => {
     logger.warning('testing');
-    expect(consoleMock).toBeCalledTimes(1);
-    expect(consoleMock).toBeCalledWith('[Just]', 'warning', '-', 'testing');
+    expect(consoleMock).toHaveBeenCalledTimes(1);
+    expect(consoleMock).toHaveBeenCalledWith('[Just]', 'warning', '-', 'testing');
   });
 
   it('logs info', () => {
     logger.info('testing');
-    expect(consoleMock).toBeCalledTimes(1);
-    expect(consoleMock).toBeCalledWith('[Just]', 'info', '-', 'testing');
+    expect(consoleMock).toHaveBeenCalledTimes(1);
+    expect(consoleMock).toHaveBeenCalledWith('[Just]', 'info', '-', 'testing');
   });
 });

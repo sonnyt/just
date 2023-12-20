@@ -1,134 +1,107 @@
-import {
-  fork,
-  spawnSync,
-  ChildProcess,
-  ForkOptions,
-  SpawnSyncOptions,
-} from 'child_process';
-import colors from 'colors/safe';
 import { resolve } from 'path';
+import { fork, spawnSync } from 'child_process';
+import getPort, { makeRange } from 'get-port';
 import { sync as whichSync } from 'which';
 
-import { timer, event, wait, error } from '../utils/logger';
+import { debug } from '../utils/logger';
 
-export default class Server {
-  private entry?: string;
-  private config: string;
-  private port?: string;
-  private process?: ChildProcess;
+function getOptions(JUST_TSCONFIG: string, port?: string | number) {
+  const flags = [
+    process.env['NODE_OPTIONS'],
+    `-r ${require.resolve('dotenv/config')}`,
+    `-r ${__dirname}/register.js`,
+    '--no-warnings',
+  ];
 
-  constructor(config: string, entry?: string, port?: string) {
-    this.port = port ?? process.env.PORT;
-    this.config = config;
-    this.entry = entry;
+  const NODE_OPTIONS = flags.filter((option) => !!option).join(' ');
+
+  debug(`using NODE_OPTIONS: ${NODE_OPTIONS}`);
+  debug(`using PORT: ${port}`);
+  debug(`using JUST_TSCONFIG: ${JUST_TSCONFIG}`);
+
+  const options = {
+    stdio: 'inherit',
+    windowsHide: true,
+    env: { ...process.env, NODE_OPTIONS, JUST_TSCONFIG }
+  } as any;
+
+  if (port) {
+    options.env.PORT = Number(port);
   }
 
-  private get options(): ForkOptions | SpawnSyncOptions {
-    const options = [
-      process.env['NODE_OPTIONS'],
-      `-r ${require.resolve('dotenv/config')}`,
-      `-r ${require.resolve('tsconfig-paths/register')}`,
-      `-r ${__dirname}/transpiler.js`,
-      '--no-warnings',
-    ];
+  return options;
+}
 
-    const NODE_OPTIONS = options.filter((option) => !!option).join(' ');
-
-    return {
-      stdio: 'inherit',
-      windowsHide: true,
-      env: {
-        ...process.env,
-        NODE_OPTIONS,
-        PORT: this.port,
-        JUST_TSCONFIG: this.config,
-        TS_NODE_PROJECT: this.config,
-      },
-    };
+export function resolveEntryPath(path?: string) {
+  if (path) {
+    debug(`using entry file: ${path}`);
+    return resolve(process.cwd(), path);
   }
 
-  private fork() {
-    if (!this.entry) {
-      const err = 'entry file is not provided';
-      error(err);
-      throw err;
+  if (process.env.npm_package_main) {
+    debug(`using main entry file from package.json: ${process.env.npm_package_main}`);
+    return resolve(process.cwd(), process.env.npm_package_main);
+  }
+
+  if (process.env.JUST_DEBUG) {
+    throw new Error('entry path is not provided');
+  }
+
+  return undefined;
+}
+
+export async function resolvePort(port?: string | number) {
+  if (port) {
+    debug(`using PORT: ${port}`);
+    return Number(port);
+  }
+
+  if (process.env.PORT) {
+    debug(`using PORT: ${process.env.PORT}`);
+    return Number(process.env.PORT);
+  }
+
+  if (process.env.npm_package_config_port) {
+    debug(`using port from package.json: ${process.env.npm_package_config_port}`);
+    return Number(process.env.npm_package_config_port);
+  }
+
+  debug('using random port');
+
+  return getPort({ port: makeRange(3000, 3100) });
+}
+
+export function createServer(entryPath: string, port: number, configPath: string) {
+  const entry = resolve(process.cwd(), entryPath);
+  const options = getOptions(configPath, port);
+
+  let childProcess = fork(entry, options);
+
+  return {
+    childProcess,
+    stop() {
+      childProcess.kill();
+    },
+    restart() {
+      childProcess.kill();
+      childProcess = fork(entry, options);
+    },
+    onExit(callback: (code: number) => void) {
+      childProcess.on('exit', callback);
     }
+  };
+}
 
-    const entry = resolve(process.cwd(), this.entry);
-    this.process = fork(entry, this.options);
-  }
+export function isCommand(command: string) {
+  return whichSync(command, { nothrow: true });
+}
 
-  private runScript(command: string, args: string[]) {
-    try {
-      const time = timer();
+export function runCommand(command: string, args: string[], configPath: string) {
+  const options = getOptions(configPath);
+  return spawnSync(command, args, options);
+}
 
-      time.start('running script...');
-
-      event(colors.cyan(`${command} ${args.join(' ')}`));
-      spawnSync(command, args, this.options);
-
-      time.end('ran script successfully');
-    } catch (err) {
-      error('script failed');
-      throw err;
-    }
-  }
-
-  private runFile(file: string) {
-    try {
-      const time = timer();
-
-      time.start('running file...');
-
-      event(colors.cyan(file));
-      fork(file, this.options);
-
-      time.end('ran file successfully');
-    } catch (err) {
-      error('run failed');
-      throw err;
-    }
-  }
-
-  run(command: string, args: string[]) {
-    const isScript = whichSync(command, { nothrow: true });
-
-    if (isScript) {
-      return this.runScript(command, args);
-    }
-
-    return this.runFile(command);
-  }
-
-  start() {
-    if (this.process && !this.process.killed) {
-      return this.restart();
-    }
-
-    try {
-      wait('starting server...');
-      this.fork();
-    } catch {
-      error('server failed');
-    }
-  }
-
-  stop() {
-    if (!this.process) {
-      return;
-    }
-
-    this.process.kill(process.exitCode);
-  }
-
-  restart() {
-    try {
-      wait('restarting server...');
-
-      this.stop();
-      this.fork();
-    } catch {
-      error('server failed');
-    }
-  }
+export function runFile(filePath: string, configPath: string) {
+  const options = getOptions(configPath);
+  return fork(filePath, options);
 }

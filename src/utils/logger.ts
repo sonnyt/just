@@ -1,6 +1,6 @@
 import colors from 'colors/safe';
 
-const prefix = '[Just]';
+const prefix = '[Just]' as const;
 
 export function timer() {
   let start: [number, number];
@@ -35,6 +35,12 @@ export function warning(...args: unknown[]) {
 
 export function info(...args: unknown[]) {
   log(colors.bold(colors.cyan('info')), '-', ...args);
+}
+
+export function debug(...args: unknown[]) {
+  if (process.env.JUST_DEBUG) {
+    log(colors.bold(colors.gray('DEBUG')), '-', ...args);
+  }
 }
 
 export function log(...args: unknown[]) {

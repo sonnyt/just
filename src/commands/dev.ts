@@ -1,10 +1,11 @@
 import color from 'colors/safe';
-import { createFileGlob, findConfigPath, findEntryPath } from '../utils/file';
-import { loadConfig } from '../libs/config';
-import Server from '../libs/server';
-import { checkFile, checkFiles } from '../libs/typechecker';
-import Watcher from '../libs/watcher';
-import { error, info, wait } from '../utils/logger';
+
+import { watchFiles } from '../utils/file';
+import { debug, error, event, info, timer, wait } from '../utils/logger';
+import { loadConfig, resolveConfigPath } from '../libs/config';
+import { checkFile, checkFiles } from '../libs/typescript';
+import { createServer, resolveEntryPath, resolvePort } from '../libs/server';
+import { resolveSourcePaths } from '../libs/swc';
 
 interface Options {
   typeCheck: boolean;
@@ -14,8 +15,9 @@ interface Options {
   debug: boolean;
 }
 
-export default async function (entry: string, options: Options) {
+export default async function (entryFile: string, options: Options) {
   if (options.debug) {
+    process.env.JUST_DEBUG = 'TRUE';
     info('debugger is on');
   }
 
@@ -23,41 +25,80 @@ export default async function (entry: string, options: Options) {
     color.disable();
   }
 
-  try {
-    const configPath = findConfigPath(options.config);
-    const config = loadConfig(configPath);
+  const configPath = resolveConfigPath(options.config);
+  const config = loadConfig(configPath);
 
-    if (options.typeCheck) {
-      const fileNames = createFileGlob(config.include, config.exclude);
-      checkFiles(fileNames, config.compilerOptions);
-    }
+  let typeCheckError = false;
 
-    const entryPath = findEntryPath(entry);
-    const server = new Server(configPath, entryPath, options.port);
+  if (options.typeCheck) {
+    const filePaths = resolveSourcePaths(config.include, config.exclude);
+    typeCheckError = checkFiles(filePaths.compile, config.ts.compilerOptions!);
+  }
 
-    const watcher = new Watcher(config.include, config.exclude);
+  if (typeCheckError) {
+    return;
+  }
 
-    process.on('SIGINT', () => {
-      wait('\nshutting down...');
+  const entryFilePath = resolveEntryPath(entryFile);
 
+  if (!entryFilePath) {
+    error('entry path is not provided');
+    return;
+  }
+
+  const portNumber = await resolvePort(options.port);
+
+  wait('starting server...');
+  const server = createServer(entryFilePath, portNumber, configPath);
+  event('server started on port: ' + portNumber);
+
+  const watcher = await watchFiles(config.include, config.exclude);
+
+  server.onExit((code) => {
+    if (code === 0) {
+      event('server stopped');
       server.stop();
       watcher.stop();
-
-      process.exit(process.exitCode);
-    });
-
-    await watcher.ready(() => server.start());
-
-    await watcher.change((fileName) => {
-      if (options.typeCheck) {
-        checkFile(fileName, config.compilerOptions);
-      }
-
-      server.restart();
-    });
-  } catch (err) {
-    if (options.debug) {
-      error(err);
+      process.exit(0);
+    } else {
+      error('server crashed');
     }
-  }
+  });
+
+  watcher.onChange(async (fileName) => {
+    let typeCheckError = false;
+
+    if (options.typeCheck) {
+      typeCheckError = checkFile(fileName, config.ts.compilerOptions!);
+    }
+
+    if (typeCheckError) {
+      return;
+    }
+
+    const time = timer();
+    time.start('restarting server...');
+    server.restart();
+    time.end('restarted server');
+  });
+
+  process.on('SIGINT', () => {
+    wait('shutting down...');
+    watcher.stop();
+    server.stop();
+    process.exit(process.exitCode);
+  });
+
+  process.on('unhandledRejection', err => {
+    watcher.stop();
+    server.stop();
+
+    if (process.env.JUST_DEBUG) {
+      debug(err);
+    } else {
+      error('Oops! Something went wrong!');
+    }
+
+    process.exit(1);
+  });
 }

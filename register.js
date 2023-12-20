@@ -1,2 +1,2 @@
 #! /usr/bin/env node
-module.exports = require('./dist/libs/transpiler');
+module.exports = require('./dist/libs/register');
