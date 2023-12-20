@@ -1,5 +1,5 @@
-# Just
-Zero config TypeScript build and development toolkit. ![GitHub tag (latest SemVer pre-release)](https://img.shields.io/github/v/tag/sonnyt/just?include_prereleases) ![GitHub](https://img.shields.io/github/license/sonnyt/just)
+# Just ![GitHub tag (latest SemVer pre-release)](https://img.shields.io/github/v/tag/sonnyt/just?include_prereleases) ![GitHub](https://img.shields.io/github/license/sonnyt/just)
+Zero config TypeScript build and development toolkit.
 
 ## Features
 - Fast [SWC](https://swc.rs/) compiler
