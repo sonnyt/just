@@ -1,8 +1,17 @@
 import { watch } from 'chokidar';
 import dirGlob from 'dir-glob';
-import { globSync } from 'glob';
-import { dirname } from 'path';
+import { IgnoreLike, globSync } from 'glob';
+import { dirname, extname } from 'path';
 import { promises as fs } from "fs";
+
+/**
+ * Checks if the given path represents a file.
+ * @param path - The path to check.
+ * @returns True if the path represents a file, false otherwise.
+ */
+export function isFile(path: string) {
+  return extname(path) !== '';
+}
 
 /**
  * Creates a directory glob pattern and returns matching file paths.
@@ -10,8 +19,9 @@ import { promises as fs } from "fs";
  * @param extensions - Optional array of file extensions to filter the search.
  * @returns An array of file paths that match the directory glob pattern.
  */
-export function createDirGlob(paths: string | string[]) {
+export function createDirGlob(paths: string | string[], extensions?: string[]) {
   return dirGlob.sync(paths, {
+    extensions,
     cwd: process.cwd(),
   });
 }
@@ -23,9 +33,10 @@ export function createDirGlob(paths: string | string[]) {
  * @param ignore - An array of patterns to ignore during the matching process.
  * @returns An array of matched file paths.
  */
-export function createFileGlob(paths: string[] = [], ignore: string[] = []) {
+export function createFileGlob(paths: string[] = [], ignore: string | string[] | IgnoreLike = []) {
   const options = {
     ignore,
+    dot: false,
     nodir: true,
     cwd: process.cwd(),
   };

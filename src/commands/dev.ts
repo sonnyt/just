@@ -1,11 +1,10 @@
 import color from 'colors/safe';
 
+import * as log from '../utils/logger';
 import { watchFiles } from '../utils/file';
-import { error, event, info, timer, wait } from '../utils/logger';
 import { loadConfig, resolveConfigPath } from '../libs/config';
 import { checkFile, checkFiles } from '../libs/typescript';
 import { createServer, resolveEntryPath, resolvePort } from '../libs/server';
-import { resolveSourcePaths } from '../libs/swc';
 
 interface Options {
   typeCheck: boolean;
@@ -18,7 +17,7 @@ interface Options {
 export default async function (entryFile: string, options: Options) {
   if (options.debug) {
     process.env.JUST_DEBUG = 'TRUE';
-    info('debugger is on');
+    log.info('debugger is on');
   }
 
   if (!options.color) {
@@ -28,64 +27,75 @@ export default async function (entryFile: string, options: Options) {
   const configPath = resolveConfigPath(options.config);
   const config = loadConfig(configPath);
 
-  let typeCheckError = false;
-
-  if (options.typeCheck) {
-    const filePaths = resolveSourcePaths(config.include, config.exclude);
-    typeCheckError = checkFiles(filePaths.compile, config.ts.compilerOptions);
-  }
-
-  if (typeCheckError) {
-    return;
-  }
+  console.log(config.swc);
 
   const entryFilePath = resolveEntryPath(entryFile);
 
   if (!entryFilePath) {
-    error('entry path is not provided');
+    log.error('entry path is not provided');
     return;
+  }
+
+  if (options.typeCheck) {
+    const time = log.timer();
+    time.start('type checking...');
+
+    const typeCheckError = checkFiles(config.compileFiles, config.ts);
+
+    time.end('type check');
+
+    if (typeCheckError) {
+      return;
+    }
   }
 
   const portNumber = await resolvePort(options.port);
 
-  wait('starting server...');
+  log.wait('starting server...');
 
   const server = createServer(entryFilePath, portNumber, configPath);
 
-  event('server started on port: ' + portNumber);
+  log.event('server started on port: ' + portNumber);
 
   const watcher = await watchFiles(config.include, config.exclude);
 
   server.onExit((code) => {
     if (code === 0) {
-      event('server stopped');
+      log.event('server stopped');
+
       server.stop();
       watcher.stop();
       process.exit(0);
     } else {
-      error('server crashed');
+      log.error('server crashed');
     }
   });
 
   watcher.onChange(async (fileName) => {
-    let typeCheckError = false;
-
     if (options.typeCheck) {
-      typeCheckError = checkFile(fileName, config.ts.compilerOptions);
+      const time = log.timer();
+      time.start('type checking...');
+
+      const typeCheckError = checkFile(fileName, config.ts);
+
+      time.end('type check');
+
+      if (typeCheckError) {
+        return;
+      }
     }
 
-    if (typeCheckError) {
-      return;
-    }
-
-    const time = timer();
+    const time = log.timer();
     time.start('restarting server...');
+
     server.restart();
+
     time.end('restarted server');
   });
 
   process.on('SIGINT', () => {
-    wait('shutting down...');
+    log.wait('shutting down...');
+
     watcher.stop();
     server.stop();
     process.exit(process.exitCode);

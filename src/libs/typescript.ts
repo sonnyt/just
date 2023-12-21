@@ -1,4 +1,3 @@
-import type { TsConfigJson } from 'get-tsconfig';
 import ts, { type Diagnostic, type CompilerOptions } from 'typescript';
 
 import { error } from '../utils/logger';
@@ -36,9 +35,9 @@ function formatError(errors: readonly Diagnostic[]) {
  * @param options - The TypeScript compiler options.
  * @returns Returns `false` if there are no errors, otherwise returns `true`.
  */
-export function checkFiles(fileNames: string[] = [], options: TsConfigJson.CompilerOptions = {}) {
-  const compilerOptions = ts.convertCompilerOptionsFromJson(options, process.cwd());
-  const errors = diagnoseFiles(fileNames, compilerOptions.options);
+export function checkFiles(fileNames: string[] = [], options: CompilerOptions = {}) {
+  // const compilerOptions = ts.convertCompilerOptionsFromJson(options, process.cwd());
+  const errors = diagnoseFiles(fileNames, options);
 
   if (!errors.length) {
     return false;
@@ -55,6 +54,6 @@ export function checkFiles(fileNames: string[] = [], options: TsConfigJson.Compi
  * @param options - The compiler options to use for checking the file.
  * @returns A result indicating whether the file passed the check or not.
  */
-export function checkFile(fileName: string, options: TsConfigJson.CompilerOptions = {}) {
+export function checkFile(fileName: string, options: CompilerOptions = {}) {
   return checkFiles([fileName], options);
 }

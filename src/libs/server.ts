@@ -3,7 +3,8 @@ import { fork, spawnSync } from 'child_process';
 import getPort, { makeRange } from 'get-port';
 import { sync as whichSync } from 'which';
 
-import { debug } from '../utils/logger';
+import { debug, error } from '../utils/logger';
+import { existsSync } from 'fs';
 
 /**
  * Retrieves the options for the server.
@@ -144,6 +145,11 @@ export function isCommand(command: string) {
  * @returns The result of the command execution.
  */
 export function runCommand(command: string, args: string[], configPath: string) {
+  if (!isCommand(command)) {
+    error(`command ${command} does not exist`);
+    return;
+  }
+
   const options = getOptions(configPath);
   return spawnSync(command, args, options);
 }
@@ -156,6 +162,11 @@ export function runCommand(command: string, args: string[], configPath: string) 
  * @returns A forked process.
  */
 export function runFile(filePath: string, configPath: string) {
+  if (!existsSync(filePath)) {
+    error(`file ${filePath} does not exist`);
+    return;
+  }
+
   const options = getOptions(configPath);
   return fork(filePath, options);
 }

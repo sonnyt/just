@@ -2,7 +2,7 @@ import { existsSync, promises as fs } from "fs";
 import { basename, dirname, extname, join, relative, resolve } from "path";
 import { DEFAULT_EXTENSIONS, Options, transformFile, transformSync } from "@swc/core";
 
-import { copyFile, createFileGlob } from "../utils/file";
+import { copyFile } from "../utils/file";
 import { debug, error } from "../utils/logger";
 
 /**
@@ -13,31 +13,6 @@ import { debug, error } from "../utils/logger";
 export function isCompilable(fileName: string) {
   const extension = extname(fileName);
   return DEFAULT_EXTENSIONS.includes(extension);
-}
-
-/**
- * Resolves the source paths based on the provided paths and ignore patterns.
- * 
- * @param paths - An array of source paths.
- * @param ignore - An array of patterns to ignore.
- * @returns An object containing all the resolved paths, paths to be copied, and paths to be compiled.
- */
-export function resolveSourcePaths(paths: string[] = [], ignore: string[] = []) {
-  const files = createFileGlob(paths, ignore);
-
-  return files.reduce((result, path) => {
-    if (path.endsWith('.d.ts')) {
-      return result;
-    }
-
-    if (isCompilable(path)) {
-      result.compile.push(path);
-    } else {
-      result.copy.push(path);
-    }
-
-    return result;
-  }, { copy: [], compile: [] } as { copy: string[], compile: string[] });
 }
 
 /**
@@ -155,6 +130,10 @@ export async function copyStaticFiles(fileNames: string[], outDir: string) {
  * @returns A promise that resolves when the file is successfully compiled.
  */
 export async function compileFile(fileName: string, outDir: string, options: Options) {
+  if (fileName.endsWith('.d.ts')) {
+    return;
+  }
+
   const outputPath = resolveOutPath(fileName, outDir, 'js');
   const sourceFileName = resolveSourceFilePath(outputPath, fileName);
 
