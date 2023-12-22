@@ -1,6 +1,6 @@
 {
   "name": "@sonnyt/just",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Zero config TypeScript build and development toolkit.",
   "files": [
     "README.md",
