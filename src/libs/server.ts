@@ -88,9 +88,11 @@ export async function resolvePort(port = process.env.PORT) {
     return Number(process.env.npm_package_config_port);
   }
 
-  log.debug('using random port');
+  const randomPort = await getPort({ port: makeRange(3000, 3100) });
 
-  return getPort({ port: makeRange(3000, 3100) });
+  log.debug('using PORT: ' + randomPort);
+
+  return randomPort;
 }
 
 /**
