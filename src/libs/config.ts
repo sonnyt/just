@@ -3,7 +3,7 @@ import { existsSync } from 'fs';
 import { resolve } from 'path';
 import type { Options } from '@swc/core';
 
-import { debug } from '../utils/logger';
+import * as log from '../utils/logger';
 import { createDirGlob, createFileGlob } from '../utils/file';
 import { loadTSConfig } from './typescript';
 
@@ -23,7 +23,7 @@ const CONFIG_FILES = ['tsconfig.json', 'jsconfig.json'] as const;
  */
 export function resolveConfigPath(path = process.env.JUST_TSCONFIG ?? process.env.TS_NODE_PROJECT) {
   if (path) {
-    debug(`using config file: ${path}`);
+    log.debug(`using config file: ${path}`);
     return resolve(process.cwd(), path);
   }
 
@@ -33,11 +33,11 @@ export function resolveConfigPath(path = process.env.JUST_TSCONFIG ?? process.en
   });
 
   if (filePath) {
-    debug(`using config file: ${filePath}`);
+    log.debug(`using config file: ${filePath}`);
     return filePath;
   }
 
-  debug(
+  log.debug(
     `config file is missing, falling back to default configuration.`
   );
 

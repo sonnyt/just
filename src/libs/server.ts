@@ -3,7 +3,7 @@ import { fork, spawnSync } from 'child_process';
 import getPort, { makeRange } from 'get-port';
 import { sync as whichSync } from 'which';
 
-import { debug, error } from '../utils/logger';
+import * as log from '../utils/logger';
 import { existsSync } from 'fs';
 
 /**
@@ -23,9 +23,9 @@ export function getOptions(JUST_TSCONFIG: string, port?: string | number) {
 
   const NODE_OPTIONS = flags.filter((option) => !!option).join(' ');
 
-  debug(`using NODE_OPTIONS: ${NODE_OPTIONS}`);
-  debug(`using PORT: ${port}`);
-  debug(`using JUST_TSCONFIG: ${JUST_TSCONFIG}`);
+  log.debug(`using NODE_OPTIONS: ${NODE_OPTIONS}`);
+  log.debug(`using PORT: ${port}`);
+  log.debug(`using JUST_TSCONFIG: ${JUST_TSCONFIG}`);
 
   const options = {
     stdio: 'inherit',
@@ -49,14 +49,16 @@ export function getOptions(JUST_TSCONFIG: string, port?: string | number) {
  */
 export function resolveEntryPath(path?: string) {
   if (path) {
-    debug(`using entry file: ${path}`);
+    log.debug(`using entry file: ${path}`);
     return resolve(process.cwd(), path);
   }
 
   if (process.env.npm_package_main) {
-    debug(`using main entry file from package.json: ${process.env.npm_package_main}`);
+    log.debug(`using main entry file from package.json: ${process.env.npm_package_main}`);
     return resolve(process.cwd(), process.env.npm_package_main);
   }
+
+  log.error('entry path is not provided');
 
   if (process.env.JUST_DEBUG) {
     throw new Error('entry path is not provided');
@@ -75,23 +77,18 @@ export function resolveEntryPath(path?: string) {
  * @param port - Optional port number to be used.
  * @returns The resolved port number.
  */
-export async function resolvePort(port?: string | number) {
+export async function resolvePort(port = process.env.PORT) {
   if (port) {
-    debug(`using PORT: ${port}`);
+    log.debug(`using PORT: ${port}`);
     return Number(port);
   }
 
-  if (process.env.PORT) {
-    debug(`using PORT: ${process.env.PORT}`);
-    return Number(process.env.PORT);
-  }
-
   if (process.env.npm_package_config_port) {
-    debug(`using port from package.json: ${process.env.npm_package_config_port}`);
+    log.debug(`using port from package.json: ${process.env.npm_package_config_port}`);
     return Number(process.env.npm_package_config_port);
   }
 
-  debug('using random port');
+  log.debug('using random port');
 
   return getPort({ port: makeRange(3000, 3100) });
 }
@@ -146,7 +143,7 @@ export function isCommand(command: string) {
  */
 export function runCommand(command: string, args: string[], configPath: string) {
   if (!isCommand(command)) {
-    error(`command ${command} does not exist`);
+    log.error(`command ${command} does not exist`);
     return;
   }
 
@@ -163,7 +160,7 @@ export function runCommand(command: string, args: string[], configPath: string) 
  */
 export function runFile(filePath: string, configPath: string) {
   if (!existsSync(filePath)) {
-    error(`file ${filePath} does not exist`);
+    log.error(`file ${filePath} does not exist`);
     return;
   }
 

@@ -1,4 +1,5 @@
 import { getOptions, resolveEntryPath, resolvePort } from '../../src/libs/server';
+import * as log from '../../src/utils/logger';
 
 describe('server', () => {
   describe('getOptions', () => {
@@ -46,15 +47,32 @@ describe('server', () => {
     it('throws an error when entry path is not provided and JUST_DEBUG environment variable is set', () => {
       process.env.JUST_DEBUG = 'TRUE';
 
+      const error = jest
+        .spyOn(log, 'error')
+        .mockReturnValueOnce(undefined);
+
       expect(() => {
         resolveEntryPath();
       }).toThrow('entry path is not provided');
+
+      expect(error).toHaveBeenCalledWith('entry path is not provided');
+
+      delete process.env.JUST_DEBUG;
+      error.mockRestore();
     });
 
     it('returns undefined when entry path is not provided and JUST_DEBUG environment variable is not set', () => {
       delete process.env.JUST_DEBUG;
+
+      const error = jest
+        .spyOn(log, 'error')
+        .mockReturnValueOnce(undefined);
+
       const result = resolveEntryPath();
       expect(result).toBeUndefined();
+      expect(error).toHaveBeenCalledWith('entry path is not provided');
+
+      error.mockRestore();
     });
   });
 

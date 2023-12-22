@@ -3,7 +3,7 @@ import { basename, dirname, extname, join, relative, resolve } from "path";
 import { type Options, DEFAULT_EXTENSIONS, transformFile, transformSync } from "@swc/core";
 
 import { copyFile } from "../utils/file";
-import { debug, error } from "../utils/logger";
+import * as log from "../utils/logger";
 
 /**
  * Checks if a file is compilable based on its extension.
@@ -93,7 +93,7 @@ export function cleanOutDir(outDir: string) {
     return;
   }
 
-  debug(`cleaning outDir: ${outDir}`);
+  log.debug(`cleaning outDir: ${outDir}`);
   return fs.rm(path, { recursive: true, force: true });
 }
 
@@ -107,7 +107,7 @@ export function cleanOutDir(outDir: string) {
 export async function copyStaticFile(fileName: string, outDir: string) {
   const outputPath = resolveOutPath(fileName, outDir);
 
-  debug(`copying ${fileName} to ${outDir}`);
+  log.debug(`copying ${fileName} to ${outDir}`);
 
   return copyFile(fileName, outputPath);
 }
@@ -137,7 +137,7 @@ export async function compileFile(fileName: string, outDir: string, options: Opt
   const outputPath = resolveOutPath(fileName, outDir, 'js');
   const sourceFileName = resolveSourceFilePath(outputPath, fileName);
 
-  debug(`compiling ${fileName} to ${outputPath}`);
+  log.debug(`compiling ${fileName} to ${outputPath}`);
 
   try {
     const { map, code } = await transformFile(fileName, {
@@ -150,7 +150,7 @@ export async function compileFile(fileName: string, outDir: string, options: Opt
     const mapContent = options.sourceMaps === true ? map : undefined;
     await writeOutputFile(outputPath, code, mapContent);
   } catch (err) {
-    error(`failed to compile ${fileName}`);
+    log.error(`failed to compile ${fileName}`);
 
     if (process.env.JUST_DEBUG) {
       throw err;

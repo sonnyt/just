@@ -30,7 +30,6 @@ export default async function (entryFile: string, options: Options) {
   const entryFilePath = resolveEntryPath(entryFile);
 
   if (!entryFilePath) {
-    log.error('entry path is not provided');
     return;
   }
 

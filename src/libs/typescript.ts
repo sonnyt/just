@@ -1,7 +1,7 @@
 import ts from 'typescript';
 
 import { dirname } from 'path';
-import { error } from '../utils/logger';
+import * as log from '../utils/logger';
 
 /**
  * Loads the TypeScript configuration from the specified path.
@@ -14,7 +14,7 @@ export function loadTSConfig(path: string) {
   const { options: compilerOptions, fileNames, errors } = ts.parseJsonConfigFileContent(config, ts.sys, dirname(path));
 
   if (errors.length) {
-    error('failed to load tsconfig.json');
+    log.error('failed to load tsconfig.json');
 
     if (process.env.JUST_DEBUG) {
       throw errors;
@@ -48,7 +48,7 @@ export function checkFiles(fileNames: string[] = [], options: ts.CompilerOptions
     getNewLine: () => ts.sys.newLine,
   });
 
-  error('type error \n\n' + formatedError);
+  log.error('type error \n\n' + formatedError);
 
   return true;
 }
