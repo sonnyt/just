@@ -1,10 +1,10 @@
 import ts from 'typescript';
 import { existsSync } from 'fs';
 import { resolve } from 'path';
+import type { Options } from '@swc/core';
 
 import { debug } from '../utils/logger';
 import { createDirGlob, createFileGlob } from '../utils/file';
-import { Options, JscConfig } from '@swc/core';
 import { loadTSConfig } from './typescript';
 
 /**

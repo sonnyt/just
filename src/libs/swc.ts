@@ -1,6 +1,6 @@
 import { existsSync, promises as fs } from "fs";
 import { basename, dirname, extname, join, relative, resolve } from "path";
-import { DEFAULT_EXTENSIONS, Options, transformFile, transformSync } from "@swc/core";
+import { type Options, DEFAULT_EXTENSIONS, transformFile, transformSync } from "@swc/core";
 
 import { copyFile } from "../utils/file";
 import { debug, error } from "../utils/logger";
