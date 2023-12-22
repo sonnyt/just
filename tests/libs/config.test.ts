@@ -1,41 +1,9 @@
-import process from 'process';
+import ts from 'typescript';
+import path from 'path';
 import fs from 'fs';
-import * as tsToSwcConfig from 'tsconfig-to-swcconfig';
-import { parseConfig, resolveConfigPath, loadSWCConfig } from '../../src/libs/config';
+import { resolveConfigPath, toTsTarget, toModule, formatPaths, convertSWCConfig } from '../../src/libs/config';
 
 describe('Config', () => {
-  describe('parseConfig', () => {
-    it('should parse outDir correctly', () => {
-      const result = parseConfig({ compilerOptions: { outDir: 'build' } });
-      expect(result.outDir).toEqual('build');
-    });
-
-    it('should parse default outDir correctly', () => {
-      const result = parseConfig({ compilerOptions: {} });
-      expect(result.outDir).toEqual('dist');
-    });
-
-    it('should parse include correctly', () => {
-      const result = parseConfig({ include: ['src'] });
-      expect(result.include).toEqual(['src/**']);
-    });
-
-    it('should parse default include correctly', () => {
-      const result = parseConfig({});
-      expect(result.include).toEqual(['**']);
-    });
-
-    it('should parse exclude correctly', () => {
-      const result = parseConfig({ exclude: ['tests/**'] });
-      expect(result.exclude).toEqual(['tests/**']);
-    });
-
-    it('should parse default exclude correctly', () => {
-      const result = parseConfig({});
-      expect(result.exclude).toEqual(['node_modules/**']);
-    });
-  });
-
   describe('resolveConfigPath', () => {
     it('should resolve the config path correctly', () => {
       const path = resolveConfigPath('/path/to/config/tsjson');
@@ -85,69 +53,121 @@ describe('Config', () => {
     });
   });
 
-  describe('loadSWCConfig', () => {
-    let cwd: jest.SpyInstance;
+  describe('toTsTarget', () => {
+    it('should convert the target to a string', () => {
+      const target = toTsTarget(ts.ScriptTarget.ES2015);
+      expect(target).toBe('es2015');
 
-    beforeAll(() => {
-      cwd = jest
+      const target2 = toTsTarget(ts.ScriptTarget.ES2016);
+      expect(target2).toBe('es2016');
+
+      const target3 = toTsTarget(ts.ScriptTarget.ES2017);
+      expect(target3).toBe('es2017');
+    });
+  });
+
+  describe('toModule', () => {
+    it('should convert the module to a string', () => {
+      const module = toModule(ts.ModuleKind.CommonJS);
+      expect(module).toBe('commonjs');
+
+      const module2 = toModule(ts.ModuleKind.ES2015);
+      expect(module2).toBe('es6');
+
+      const module3 = toModule(ts.ModuleKind.ES2020);
+      expect(module3).toBe('es6');
+    });
+  });
+
+  describe('formatPaths', () => {
+    it('should format the paths correctly', () => {
+      const resolve = jest
+        .spyOn(path, 'resolve')
+        .mockImplementation((...args) => args.join('/'));
+
+      const paths = formatPaths({
+        '@/*': ['src/*'],
+        'test/*': ['test/*'],
+      }, '/path/to/project');
+
+      expect(paths).toEqual({
+        '@/*': ['/path/to/project/src/*'],
+        'test/*': ['/path/to/project/test/*'],
+      });
+
+      resolve.mockRestore();
+    });
+  });
+
+  describe('convertSWCConfig', () => {
+    it('should convert the SWC config correctly', () => {
+      const resolve = jest
+        .spyOn(path, 'resolve')
+        .mockImplementation((...args) => args.join('/'));
+
+      const cwd = jest
         .spyOn(process, 'cwd')
         .mockReturnValue('/path/to/project');
-    });
 
-    afterAll(() => {
-      cwd.mockRestore();
-    });
+      const options = {
+        target: ts.ScriptTarget.ES2018,
+        module: ts.ModuleKind.ES2015,
+        sourceMap: true,
+        inlineSourceMap: true,
+        esModuleInterop: true,
+        emitDecoratorMetadata: true,
+        experimentalDecorators: true,
+        strict: true,
+        alwaysStrict: true,
+        baseUrl: './',
+        paths: {
+          '@/*': ['src/*'],
+          'test/*': ['test/*'],
+        },
+      };
 
-    it('should load the SWC config correctly', () => {
-      const convertTsConfig = jest
-        .spyOn(tsToSwcConfig, 'convertTsConfig')
-        .mockReturnValue({});
-
-      const result = loadSWCConfig({});
+      const result = convertSWCConfig(options);
 
       expect(result).toEqual({
-        cwd: '/path/to/project',
-        configFile: false,
         swcrc: false,
+        minify: false,
+        isModule: true,
+        configFile: false,
+        cwd: '/path/to/project',
+        sourceMaps: 'inline',
+        module: {
+          noInterop: false,
+          type: 'es6',
+          strictMode: true,
+        },
+        jsc: {
+          keepClassNames: true,
+          externalHelpers: false,
+          target: 'es2018',
+          baseUrl: './',
+          paths: {
+            '@/*': ['.//src/*'],
+            'test/*': ['.//test/*'],
+          },
+          parser: {
+            tsx: false,
+            dynamicImport: true,
+            syntax: 'typescript',
+            decorators: true,
+          },
+          transform: {
+            legacyDecorator: true,
+            decoratorMetadata: true,
+          },
+          minify: {
+            compress: false,
+            mangle: false,
+          },
+        },
       });
 
-      convertTsConfig.mockRestore();
-    });
-
-    it('should load the SWC config correctly with baseUrl', () => {
-      const convertTsConfig = jest
-        .spyOn(tsToSwcConfig, 'convertTsConfig')
-        .mockReturnValue({ jsc: { baseUrl: 'src' } });
-
-      const result = loadSWCConfig({});
-
-      expect(result.jsc).toEqual({
-        baseUrl: '/path/to/project/src'
-      });
-
-      convertTsConfig.mockRestore();
-    });
-
-    it('should load the SWC config correctly with paths', () => {
-      const convertTsConfig = jest
-        .spyOn(tsToSwcConfig, 'convertTsConfig')
-        .mockReturnValue({
-          jsc: {
-            paths: {
-              '@/*': ['src/*']
-            }
-          }
-        });
-
-      const result = loadSWCConfig({});
-
-      expect(result.jsc).toEqual({
-        paths: {
-          '@/*': ['/path/to/project/src/*']
-        }
-      });
-
-      convertTsConfig.mockRestore();
+      resolve.mockRestore();
+      cwd.mockRestore();
     });
   });
 

@@ -57,6 +57,20 @@ export async function copyFile(fileName: string, outputPath: string) {
 }
 
 /**
+ * Creates a debounced version of a function.
+ * @param fn The function to debounce.
+ * @param timeout The debounce timeout in milliseconds. Default is 500ms.
+ * @returns The debounced function.
+ */
+export function debounce(fn: Function, timeout = 500) {
+  let timer: NodeJS.Timeout;
+  return (...args: any[]) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(null, args), timeout);
+  };
+}
+
+/**
  * Watches the specified files and directories for changes.
  * 
  * @param paths - An array of file or directory paths to watch.
@@ -81,10 +95,10 @@ export function watchFiles(paths: string[], ignored: string[]) {
     watcher,
     stop: () => watcher.close(),
     onChange(callback: (...args: any) => Promise<void> | void) {
-      ['add', 'change'].forEach((type) => watcher.on(type, callback));
+      ['add', 'change'].forEach((type) => watcher.on(type, debounce(callback)));
     },
     onRemove(callback: (...args: any) => Promise<void> | void) {
-      watcher.on('unlink', callback);
+      watcher.on('unlink', debounce(callback));
     },
   };
 

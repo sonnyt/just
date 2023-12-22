@@ -27,8 +27,6 @@ export default async function (entryFile: string, options: Options) {
   const configPath = resolveConfigPath(options.config);
   const config = loadConfig(configPath);
 
-  console.log(config.swc);
-
   const entryFilePath = resolveEntryPath(entryFile);
 
   if (!entryFilePath) {
@@ -40,7 +38,7 @@ export default async function (entryFile: string, options: Options) {
     const time = log.timer();
     time.start('type checking...');
 
-    const typeCheckError = checkFiles(config.compileFiles, config.ts);
+    const typeCheckError = checkFiles(config.compileFiles, config.compilerOptions);
 
     time.end('type check');
 
@@ -76,7 +74,7 @@ export default async function (entryFile: string, options: Options) {
       const time = log.timer();
       time.start('type checking...');
 
-      const typeCheckError = checkFile(fileName, config.ts);
+      const typeCheckError = checkFile(fileName, config.compilerOptions);
 
       time.end('type check');
 

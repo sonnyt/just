@@ -32,7 +32,7 @@ export default async function (filePath: string, options: Options) {
     const time = log.timer();
     time.start('type checking...');
 
-    const typeCheckError = checkFiles(compilablePaths, config.ts);
+    const typeCheckError = checkFiles(compilablePaths, config.compilerOptions);
 
     time.end('type check');
 

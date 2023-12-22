@@ -80,6 +80,7 @@ describe('file', () => {
       expect(globSync).toHaveBeenCalledWith('path/to/files/*', {
         ignore: ['path/to/ignore/*'],
         nodir: true,
+        dot: false,
         cwd: '/path/to/project',
       });
 
@@ -112,9 +113,27 @@ describe('file', () => {
     });
   });
 
+  describe('debounce', () => {
+    it('returns a function that debounces the callback', () => {
+      jest.useFakeTimers();
+
+      const callback = jest.fn();
+      const debounced = file.debounce(callback, 100);
+
+      debounced();
+      debounced();
+      debounced();
+
+      jest.runAllTimers();
+
+      expect(callback).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('watchFiles', () => {
     let watch: jest.SpyInstance;
     const emitter = new EventEmitter();
+    jest.useFakeTimers();
 
     beforeAll(() => {
       watch = jest
@@ -166,6 +185,7 @@ describe('file', () => {
 
       emitter.emit('add', 'path/to/file');
       emitter.emit('change', 'path/to/file');
+      jest.runAllTimers();
 
       expect(onChange).toHaveBeenCalledTimes(2);
     });
@@ -181,6 +201,7 @@ describe('file', () => {
       result.onRemove(onRemove);
 
       emitter.emit('unlink', 'path/to/file');
+      jest.runAllTimers();
 
       expect(onRemove).toHaveBeenCalledTimes(1);
     });

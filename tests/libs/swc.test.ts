@@ -1,7 +1,7 @@
 import fs from 'fs';
 import process from 'process';
 
-import { isCompilable, resolveSourcePaths, resolveOutPath, resolveSourceFilePath, writeOutputFile, cleanOutDir, copyStaticFile, copyStaticFiles } from '../../src/libs/swc';
+import { isCompilable, resolveOutPath, resolveSourceFilePath, writeOutputFile, cleanOutDir, copyStaticFile, copyStaticFiles } from '../../src/libs/swc';
 import * as file from '../../src/utils/file';
 
 describe('swc', () => {
@@ -14,31 +14,6 @@ describe('swc', () => {
     it('returns false for a non-compilable file', () => {
       const result = isCompilable('path/to/file.json');
       expect(result).toBe(false);
-    });
-  });
-
-  describe('resolveSourcePaths', () => {
-    it('returns an object containing all the resolved paths, paths to be copied, and paths to be compiled', () => {
-      const createFileGlob = jest.spyOn(file, 'createFileGlob').mockReturnValue([
-        'path/to/files/file1.ts',
-        'path/to/files/file2.json',
-      ]);
-
-      const result = resolveSourcePaths([
-        'path/to/files/*',
-        'path/to/files/*',
-      ]);
-
-      expect(result).toEqual({
-        copy: [
-          'path/to/files/file2.json',
-        ],
-        compile: [
-          'path/to/files/file1.ts',
-        ],
-      });
-
-      createFileGlob.mockRestore();
     });
   });
 

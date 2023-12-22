@@ -1,11 +1,11 @@
 import ts from 'typescript';
 import { existsSync } from 'fs';
-import { dirname, resolve } from 'path';
-import { tsCompilerOptionsToSwcConfig } from '@swc-node/register/read-default-tsconfig';
+import { resolve } from 'path';
 
 import { debug } from '../utils/logger';
 import { createDirGlob, createFileGlob } from '../utils/file';
-import { Options } from '@swc/core';
+import { Options, JscConfig } from '@swc/core';
+import { loadTSConfig } from './typescript';
 
 /**
  * Configuration file names.
@@ -44,53 +44,121 @@ export function resolveConfigPath(path = process.env.JUST_TSCONFIG ?? process.en
   return resolve(__dirname, '..', '..', 'just.tsconfig.json');
 }
 
-export function loadTSConfig(path: string) {
-  const { config } = ts.readConfigFile(path, ts.sys.readFile);
-  const { options, fileNames } = ts.parseJsonConfigFileContent(config, ts.sys, dirname(path));
-
-  options.importHelpers = false;
-  options.files = fileNames;
-
-  const include = createDirGlob(config.include ?? ['./']);
-  const exclude = createDirGlob(config.exclude ?? ['node_modules']);
-
-  return {
-    options, include, exclude,
-    compileFiles: fileNames,
-    outDir: options.outDir ?? 'dist',
-    staticFiles: createFileGlob(include, fileNames)
-  };
+/**
+ * Converts a TypeScript script target to a string representation.
+ * @param target - The TypeScript script target.
+ * @returns The string representation of the script target.
+ */
+export function toTsTarget(target: ts.ScriptTarget) {
+  switch (target) {
+    case ts.ScriptTarget.ES3:
+      return 'es3'
+    case ts.ScriptTarget.ES5:
+      return 'es5'
+    case ts.ScriptTarget.ES2015:
+      return 'es2015'
+    case ts.ScriptTarget.ES2016:
+      return 'es2016'
+    case ts.ScriptTarget.ES2017:
+      return 'es2017'
+    case ts.ScriptTarget.ES2018:
+      return 'es2018'
+    case ts.ScriptTarget.ES2019:
+      return 'es2019'
+    case ts.ScriptTarget.ES2020:
+      return 'es2020'
+    case ts.ScriptTarget.ES2021:
+      return 'es2021'
+    case ts.ScriptTarget.ES2022:
+    case ts.ScriptTarget.ESNext:
+    case ts.ScriptTarget.Latest:
+      return 'es2022'
+    case ts.ScriptTarget.JSON:
+      return 'es5'
+  }
 }
 
+/**
+ * Converts a TypeScript module kind to a string representation.
+ * @param moduleKind - The TypeScript module kind.
+ * @returns The string representation of the module kind.
+ */
+export function toModule(moduleKind: ts.ModuleKind) {
+  switch (moduleKind) {
+    case ts.ModuleKind.CommonJS:
+      return 'commonjs'
+    case ts.ModuleKind.UMD:
+      return 'umd'
+    case ts.ModuleKind.AMD:
+      return 'amd'
+    case ts.ModuleKind.ES2015:
+    case ts.ModuleKind.ES2020:
+    case ts.ModuleKind.ES2022:
+    case ts.ModuleKind.ESNext:
+    case ts.ModuleKind.Node16:
+    case ts.ModuleKind.NodeNext:
+    case ts.ModuleKind.None:
+      return 'es6'
+    case ts.ModuleKind.System:
+      throw new TypeError('Do not support system kind module')
+  }
+}
+
+/**
+ * Formats the paths object by resolving each path relative to the base URL.
+ * @param paths - The paths object to be formatted.
+ * @param baseUrl - The base URL to resolve the paths against.
+ * @returns The formatted paths object with resolved paths.
+ */
+export function formatPaths(paths = {}, baseUrl: string) {
+  return Object
+    .entries(paths)
+    .reduce((paths, [key, value]) => {
+      paths![key] = (value as string[] ?? []).map((path) => resolve(baseUrl, path));
+      return paths;
+    }, {} as Record<string, string[]>);
+}
+
+/**
+ * Converts TypeScript compiler options to SWC configuration options.
+ * 
+ * @param options - TypeScript compiler options.
+ * @returns SWC configuration options.
+ */
 export function convertSWCConfig(options: ts.CompilerOptions): Options {
-  const config = tsCompilerOptionsToSwcConfig(options, '');
+  const target = options.target ?? ts.ScriptTarget.ES2018;
 
   return {
     swcrc: false,
+    minify: false,
+    isModule: true,
     configFile: false,
     cwd: process.cwd(),
-    sourceMaps: config.sourcemap,
+    sourceMaps: options.sourceMap && options.inlineSourceMap ? 'inline' : Boolean(options.sourceMap),
     module: {
-      type: config.module!,
-      noInterop: config.esModuleInterop,
+      noInterop: !options.esModuleInterop,
+      type: toModule(options.module ?? ts.ModuleKind.ES2015)!,
       strictMode: options.strict || options.alwaysStrict || false,
     },
     jsc: {
-      paths: config.paths,
-      target: config.target,
+      keepClassNames: true,
       externalHelpers: false,
-      baseUrl: config.baseUrl,
-      keepClassNames: config.keepClassNames,
+      target: toTsTarget(target),
+      baseUrl: resolve(options.baseUrl ?? './'),
+      paths: formatPaths(options.paths, options.baseUrl ?? './') as any,
       parser: {
-        tsx: config.jsx,
+        tsx: !!options.jsx,
         dynamicImport: true,
         syntax: 'typescript',
-        decorators: config.experimentalDecorators,
+        decorators: options.experimentalDecorators ?? false,
       },
       transform: {
-        react: config.react,
         legacyDecorator: true,
-        decoratorMetadata: config.emitDecoratorMetadata,
+        decoratorMetadata: options.emitDecoratorMetadata ?? false,
+      },
+      minify: {
+        compress: false,
+        mangle: false
       },
     },
   };
@@ -102,16 +170,13 @@ export function convertSWCConfig(options: ts.CompilerOptions): Options {
  * @returns The loaded configuration object.
  */
 export function loadConfig(path: string) {
-  const ts = loadTSConfig(path);
-  const swc = convertSWCConfig(ts.options);
+  const { compilerOptions, config, fileNames: compileFiles } = loadTSConfig(path);
+  const swc = convertSWCConfig(compilerOptions);
 
-  return {
-    swc,
-    ts: ts.options,
-    outDir: ts.outDir,
-    include: ts.include,
-    exclude: ts.exclude,
-    staticFiles: ts.staticFiles,
-    compileFiles: ts.compileFiles,
-  };
+  const include = createDirGlob(config.include ?? ['./']);
+  const exclude = createDirGlob(config.exclude ?? ['node_modules']);
+  const outDir = compilerOptions.outDir ?? 'dist';
+  const staticFiles = createFileGlob(include, compileFiles);
+
+  return { swc, outDir, include, exclude, staticFiles, compilerOptions, compileFiles };
 }
