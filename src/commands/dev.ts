@@ -1,10 +1,10 @@
 import color from 'colors/safe';
-import { createFileGlob, findConfigPath, findEntryPath } from '../utils/file';
-import { loadConfig } from '../libs/config';
-import Server from '../libs/server';
-import { checkFile, checkFiles } from '../libs/typechecker';
-import Watcher from '../libs/watcher';
-import { error, info, wait } from '../utils/logger';
+
+import * as log from '../utils/logger';
+import { watchFiles } from '../utils/file';
+import { loadConfig, resolveConfigPath } from '../libs/config';
+import { checkFile, checkFiles } from '../libs/typescript';
+import { createServer, resolveEntryPath, resolvePort } from '../libs/server';
 
 interface Options {
   typeCheck: boolean;
@@ -14,50 +14,87 @@ interface Options {
   debug: boolean;
 }
 
-export default async function (entry: string, options: Options) {
+export default async function (entryFile: string, options: Options) {
   if (options.debug) {
-    info('debugger is on');
+    process.env.JUST_DEBUG = 'TRUE';
+    log.info('debugger is on');
   }
 
   if (!options.color) {
     color.disable();
   }
 
-  try {
-    const configPath = findConfigPath(options.config);
-    const config = loadConfig(configPath);
+  const configPath = resolveConfigPath(options.config);
+  const config = loadConfig(configPath);
 
-    if (options.typeCheck) {
-      const fileNames = createFileGlob(config.include, config.exclude);
-      checkFiles(fileNames, config.compilerOptions);
+  const entryFilePath = resolveEntryPath(entryFile);
+
+  if (!entryFilePath) {
+    return;
+  }
+
+  if (options.typeCheck) {
+    const time = log.timer();
+    time.start('type checking...');
+
+    const typeCheckError = checkFiles(config.compileFiles, config.compilerOptions);
+
+    time.end('type check');
+
+    if (typeCheckError) {
+      return;
     }
+  }
 
-    const entryPath = findEntryPath(entry);
-    const server = new Server(configPath, entryPath, options.port);
+  const portNumber = await resolvePort(options.port);
 
-    const watcher = new Watcher(config.include, config.exclude);
+  log.wait('starting server...');
 
-    process.on('SIGINT', () => {
-      wait('\nshutting down...');
+  const server = createServer(entryFilePath, portNumber, configPath);
+
+  log.event('server started on port: ' + portNumber);
+
+  const watcher = await watchFiles(config.include, config.exclude);
+
+  server.onExit((code) => {
+    if (code === 0) {
+      log.event('server stopped');
 
       server.stop();
       watcher.stop();
-
-      process.exit(process.exitCode);
-    });
-
-    await watcher.ready(() => server.start());
-
-    await watcher.change((fileName) => {
-      if (options.typeCheck) {
-        checkFile(fileName, config.compilerOptions);
-      }
-
-      server.restart();
-    });
-  } catch (err) {
-    if (options.debug) {
-      error(err);
+      process.exit(0);
+    } else {
+      log.error('server crashed');
     }
-  }
+  });
+
+  watcher.onChange(async (fileName) => {
+    if (options.typeCheck) {
+      const time = log.timer();
+      time.start('type checking...');
+
+      const typeCheckError = checkFile(fileName, config.compilerOptions);
+
+      time.end('type check');
+
+      if (typeCheckError) {
+        return;
+      }
+    }
+
+    const time = log.timer();
+    time.start('restarting server...');
+
+    server.restart();
+
+    time.end('restarted server');
+  });
+
+  process.on('SIGINT', () => {
+    log.wait('shutting down...');
+
+    watcher.stop();
+    server.stop();
+    process.exit(process.exitCode);
+  });
 }

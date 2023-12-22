@@ -1,8 +1,9 @@
 import color from 'colors/safe';
 
-import Server from '../libs/server';
-import { error, info, wait } from '../utils/logger';
-import { findConfigPath } from '../utils/file';
+import * as log from '../utils/logger';
+import { resolveConfigPath } from '../libs/config';
+import { runCommand, runFile } from '../libs/server';
+import { isFile } from '../utils/file';
 
 interface Options {
   config: string;
@@ -12,25 +13,33 @@ interface Options {
 
 export default async function (cmd: string, args: string[], options: Options) {
   if (options.debug) {
-    info('debugger is on');
+    process.env.JUST_DEBUG = 'TRUE';
+    log.info('debugger is on');
   }
 
   if (!options.color) {
     color.disable();
   }
 
-  try {
-    process.on('SIGINT', () => {
-      wait('\nshutting down...');
-      process.exit(process.exitCode);
-    });
+  const configPath = resolveConfigPath(options.config);
 
-    const configPath = findConfigPath(options.config);
-    const server = new Server(configPath);
-    server.run(cmd, args);
-  } catch (err) {
-    if (options.debug) {
-      error(err);
-    }
+  const time = log.timer();
+
+  if (isFile(cmd)) {
+    time.start('running file...');
+
+    runFile(cmd, configPath);
+  } else {
+    time.start('running command...');
+
+    runCommand(cmd, args, configPath);
   }
+
+  time.end();
+
+  process.on('SIGINT', () => {
+    log.wait('shutting down...');
+
+    process.exit(process.exitCode);
+  });
 }

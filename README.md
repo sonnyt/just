@@ -1,4 +1,4 @@
-# Just
+# Just ![GitHub tag (latest SemVer pre-release)](https://img.shields.io/github/v/tag/sonnyt/just?include_prereleases) ![GitHub](https://img.shields.io/github/license/sonnyt/just)
 Zero config TypeScript build and development toolkit.
 
 ## Features
@@ -130,12 +130,23 @@ When using the [dev](#dev) or [run](#run) commands. Just automatically finds and
 Based on the `paths` [configuration](https://www.typescriptlang.org/tsconfig#paths), Just replaces all alias paths with relative paths after typescript compilation.
 
 ## FAQ
-...
+### Does Just work with ES Modules?
+Currently, Just only supports building ES Module files.
+
+### What's the REPL use case?
+Just REPL enables you to execute TypeScript files on Node.js directly without precompiling. It serves as a replacement for [ts-node](https://www.npmjs.com/package/ts-node).
+
+### Does Just compile alias paths?
+Out of the box, Just supports build and runtime path aliases. All output file alias imports are replaced with relative paths.
+
+### What happens to my non-JavaScript/TypeScript files?
+If your source directory includes noncompilable files (i.e., JSON, SVG, etc.), Just automatically copies them to your output directory.
 
 ## Roadmap
 - Build watch option
-- Init option - copy over the default config file to the working directory.
+- Init option - copy over the default config file to the working directory
 - [TypeScript ESLint](https://typescript-eslint.io/) support
 - [Prettier](https://www.npmjs.com/package/prettier-eslint) support
+- REPL ES module support
 - ~~`jsconfig.json` support~~
 - `.swcrc` support

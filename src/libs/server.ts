@@ -1,134 +1,171 @@
-import {
-  fork,
-  spawnSync,
-  ChildProcess,
-  ForkOptions,
-  SpawnSyncOptions,
-} from 'child_process';
-import colors from 'colors/safe';
 import { resolve } from 'path';
+import { fork, spawnSync } from 'child_process';
+import getPort, { makeRange } from 'get-port';
 import { sync as whichSync } from 'which';
 
-import { timer, event, wait, error } from '../utils/logger';
+import * as log from '../utils/logger';
+import { existsSync } from 'fs';
 
-export default class Server {
-  private entry?: string;
-  private config: string;
-  private port?: string;
-  private process?: ChildProcess;
+/**
+ * Retrieves the options for the server.
+ * 
+ * @param JUST_TSCONFIG - The path to the JUST_TSCONFIG file.
+ * @param port - The port number for the server (optional).
+ * @returns The options object for the server.
+ */
+export function getOptions(JUST_TSCONFIG: string, port?: string | number) {
+  const flags = [
+    process.env['NODE_OPTIONS'],
+    `-r ${require.resolve('dotenv/config')}`,
+    `-r ${__dirname}/register.js`,
+    '--no-warnings',
+  ];
 
-  constructor(config: string, entry?: string, port?: string) {
-    this.port = port ?? process.env.PORT;
-    this.config = config;
-    this.entry = entry;
+  const NODE_OPTIONS = flags.filter((option) => !!option).join(' ');
+
+  log.debug(`using NODE_OPTIONS: ${NODE_OPTIONS}`);
+  log.debug(`using PORT: ${port}`);
+  log.debug(`using JUST_TSCONFIG: ${JUST_TSCONFIG}`);
+
+  const options = {
+    stdio: 'inherit',
+    windowsHide: true,
+    env: { ...process.env, NODE_OPTIONS, JUST_TSCONFIG }
+  } as any;
+
+  if (port) {
+    options.env.PORT = Number(port);
   }
 
-  private get options(): ForkOptions | SpawnSyncOptions {
-    const options = [
-      process.env['NODE_OPTIONS'],
-      `-r ${require.resolve('dotenv/config')}`,
-      `-r ${require.resolve('tsconfig-paths/register')}`,
-      `-r ${__dirname}/transpiler.js`,
-      '--no-warnings',
-    ];
+  return options;
+}
 
-    const NODE_OPTIONS = options.filter((option) => !!option).join(' ');
-
-    return {
-      stdio: 'inherit',
-      windowsHide: true,
-      env: {
-        ...process.env,
-        NODE_OPTIONS,
-        PORT: this.port,
-        JUST_TSCONFIG: this.config,
-        TS_NODE_PROJECT: this.config,
-      },
-    };
+/**
+ * Resolves the entry path for the server.
+ * 
+ * @param path - Optional path to the entry file.
+ * @returns The resolved entry path or undefined if not provided.
+ * @throws Error if entry path is not provided and JUST_DEBUG environment variable is set.
+ */
+export function resolveEntryPath(path?: string) {
+  if (path) {
+    log.debug(`using entry file: ${path}`);
+    return resolve(process.cwd(), path);
   }
 
-  private fork() {
-    if (!this.entry) {
-      const err = 'entry file is not provided';
-      error(err);
-      throw err;
+  if (process.env.npm_package_main) {
+    log.debug(`using main entry file from package.json: ${process.env.npm_package_main}`);
+    return resolve(process.cwd(), process.env.npm_package_main);
+  }
+
+  log.error('entry path is not provided');
+
+  if (process.env.JUST_DEBUG) {
+    throw new Error('entry path is not provided');
+  }
+
+  return undefined;
+}
+
+/**
+ * Resolves the port number to be used by the server.
+ * If a specific port is provided, it will be used.
+ * Otherwise, it checks for the PORT environment variable.
+ * If not found, it checks for the port specified in package.json.
+ * If still not found, it uses a random port within the range 3000-3100.
+ * 
+ * @param port - Optional port number to be used.
+ * @returns The resolved port number.
+ */
+export async function resolvePort(port = process.env.PORT) {
+  if (port) {
+    log.debug(`using PORT: ${port}`);
+    return Number(port);
+  }
+
+  if (process.env.npm_package_config_port) {
+    log.debug(`using port from package.json: ${process.env.npm_package_config_port}`);
+    return Number(process.env.npm_package_config_port);
+  }
+
+  const randomPort = await getPort({ port: makeRange(3000, 3100) });
+
+  log.debug('using PORT: ' + randomPort);
+
+  return randomPort;
+}
+
+/**
+ * Creates a server by forking a child process with the specified entry path, port, and config path.
+ * @param entryPath - The path to the entry file for the server.
+ * @param port - The port number on which the server should listen.
+ * @param configPath - The path to the configuration file for the server.
+ * @returns An object with methods to control the server:
+ *   - `childProcess`: The child process created by forking.
+ *   - `stop()`: Stops the server by killing the child process.
+ *   - `restart()`: Restarts the server by killing the current child process and forking a new one.
+ *   - `onExit(callback)`: Registers a callback function to be called when the child process exits.
+ */
+export function createServer(entryPath: string, port: number, configPath: string) {
+  const entry = resolve(process.cwd(), entryPath);
+  const options = getOptions(configPath, port);
+
+  let childProcess = fork(entry, options);
+
+  return {
+    childProcess,
+    stop() {
+      childProcess.kill();
+    },
+    restart() {
+      childProcess.kill();
+      childProcess = fork(entry, options);
+    },
+    onExit(callback: (code: number) => void) {
+      childProcess.on('exit', callback);
     }
+  };
+}
 
-    const entry = resolve(process.cwd(), this.entry);
-    this.process = fork(entry, this.options);
+/**
+ * Checks if a command exists in the system.
+ * @param command - The command to check.
+ * @returns True if the command exists, false otherwise.
+ */
+export function isCommand(command: string) {
+  return whichSync(command, { nothrow: true });
+}
+
+/**
+ * Runs a command with the specified arguments and configuration path.
+ * @param command - The command to run.
+ * @param args - The arguments to pass to the command.
+ * @param configPath - The path to the configuration file.
+ * @returns The result of the command execution.
+ */
+export function runCommand(command: string, args: string[], configPath: string) {
+  if (!isCommand(command)) {
+    log.error(`command ${command} does not exist`);
+    return;
   }
 
-  private runScript(command: string, args: string[]) {
-    try {
-      const time = timer();
+  const options = getOptions(configPath);
+  return spawnSync(command, args, options);
+}
 
-      time.start('running script...');
-
-      event(colors.cyan(`${command} ${args.join(' ')}`));
-      spawnSync(command, args, this.options);
-
-      time.end('ran script successfully');
-    } catch (err) {
-      error('script failed');
-      throw err;
-    }
+/**
+ * Runs a file with the specified configuration.
+ * 
+ * @param filePath - The path of the file to run.
+ * @param configPath - The path of the configuration file.
+ * @returns A forked process.
+ */
+export function runFile(filePath: string, configPath: string) {
+  if (!existsSync(filePath)) {
+    log.error(`file ${filePath} does not exist`);
+    return;
   }
 
-  private runFile(file: string) {
-    try {
-      const time = timer();
-
-      time.start('running file...');
-
-      event(colors.cyan(file));
-      fork(file, this.options);
-
-      time.end('ran file successfully');
-    } catch (err) {
-      error('run failed');
-      throw err;
-    }
-  }
-
-  run(command: string, args: string[]) {
-    const isScript = whichSync(command, { nothrow: true });
-
-    if (isScript) {
-      return this.runScript(command, args);
-    }
-
-    return this.runFile(command);
-  }
-
-  start() {
-    if (this.process && !this.process.killed) {
-      return this.restart();
-    }
-
-    try {
-      wait('starting server...');
-      this.fork();
-    } catch {
-      error('server failed');
-    }
-  }
-
-  stop() {
-    if (!this.process) {
-      return;
-    }
-
-    this.process.kill(process.exitCode);
-  }
-
-  restart() {
-    try {
-      wait('restarting server...');
-
-      this.stop();
-      this.fork();
-    } catch {
-      error('server failed');
-    }
-  }
+  const options = getOptions(configPath);
+  return fork(filePath, options);
 }

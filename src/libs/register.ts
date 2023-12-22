@@ -1,8 +1,9 @@
 import InternalModule from 'module';
 
-import { EXTENSIONS, compileCode } from './compiler';
-import { loadConfig } from './config';
-import { findConfigPath } from './../utils/file';
+import { loadConfig, resolveConfigPath } from './config';
+import { compileCode } from './swc';
+
+const EXTENSIONS = ['.ts', '.tsx', '.cts', '.mts'] as const;
 
 type ModuleType = InternalModule & {
   _extensions: Record<string, (mod: ModuleType, fileName: string) => void>;
@@ -11,8 +12,8 @@ type ModuleType = InternalModule & {
 
 const Module = InternalModule as unknown as ModuleType;
 
-export function register(path?: string) {
-  const filePath = findConfigPath(path);
+export function register() {
+  const filePath = resolveConfigPath();
   const config = loadConfig(filePath);
 
   const jsLoader = Module._extensions['.js'];
@@ -22,7 +23,7 @@ export function register(path?: string) {
       const compile = module._compile;
 
       module._compile = (jsCode: string) => {
-        const { code } = compileCode(jsCode, config.swcOptions);
+        const { code } = compileCode(jsCode, fileName, config.swc);
         return compile.call(module, code, fileName);
       };
 

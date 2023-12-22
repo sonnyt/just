@@ -1,65 +1,132 @@
-import { CompilerOptions, convertCompilerOptionsFromJson } from 'typescript';
-import { Options } from '@swc/core';
+import ts from 'typescript';
+import { existsSync } from 'fs';
+import { resolve } from 'path';
+import type { Options } from '@swc/core';
 
-import { error } from '../utils/logger';
-import { createDirGlob, readJSONFile } from '../utils/file';
+import * as log from '../utils/logger';
+import { createDirGlob, createFileGlob } from '../utils/file';
+import { loadTSConfig } from './typescript';
 
-export const TARGETS = [
-  'es3',
-  'es5',
-  'es2015',
-  'es2016',
-  'es2017',
-  'es2018',
-  'es2019',
-  'es2020',
-  'es2021',
-  'es2022',
-];
+/**
+ * Configuration file names.
+ */
+const CONFIG_FILES = ['tsconfig.json', 'jsconfig.json'] as const;
 
-function loadFile(fileName: string) {
-  try {
-    return readJSONFile(fileName);
-  } catch (err) {
-    error('failed to load the config file');
-    throw err;
+/**
+ * Resolves the path to the configuration file.
+ * If a path is provided, it will be used.
+ * Otherwise, it will check for the environment variable JUST_TSCONFIG.
+ * If neither a path nor an environment variable is found, it will search for a default configuration file.
+ * If no configuration file is found, it will fallback to the default configuration file.
+ * @param path - Optional path to the configuration file.
+ * @returns The resolved path to the configuration file.
+ */
+export function resolveConfigPath(path = process.env.JUST_TSCONFIG ?? process.env.TS_NODE_PROJECT) {
+  if (path) {
+    log.debug(`using config file: ${path}`);
+    return resolve(process.cwd(), path);
   }
-}
 
-function validateTarget(target: string) {
-  const optionTarget = target?.toLowerCase();
+  const filePath = CONFIG_FILES.find((file) => {
+    const resolvedPath = resolve(process.cwd(), file);
+    return existsSync(resolvedPath);
+  });
 
-  if (!TARGETS.includes(optionTarget)) {
-    const err = `target must be one of: ${TARGETS.join(',')}`;
-    error(err);
-    throw err;
+  if (filePath) {
+    log.debug(`using config file: ${filePath}`);
+    return filePath;
   }
-}
 
-function convertCompilerOptions(compilerOptions: any) {
-  const { options, errors } = convertCompilerOptionsFromJson(
-    compilerOptions,
-    ''
+  log.debug(
+    `config file is missing, falling back to default configuration.`
   );
 
-  if (errors.length) {
-    error('failed to parse the config option');
-    throw errors;
-  }
-
-  return options;
+  return resolve(__dirname, '..', '..', 'just.tsconfig.json');
 }
 
-function convertSWCOptions(compilerOptions: any): Options {
-  let sourceMaps: boolean | 'inline' = false;
-
-  if (compilerOptions.inlineSourceMap) {
-    sourceMaps = 'inline';
+/**
+ * Converts a TypeScript script target to a string representation.
+ * @param target - The TypeScript script target.
+ * @returns The string representation of the script target.
+ */
+export function toTsTarget(target: ts.ScriptTarget) {
+  switch (target) {
+    case ts.ScriptTarget.ES3:
+      return 'es3'
+    case ts.ScriptTarget.ES5:
+      return 'es5'
+    case ts.ScriptTarget.ES2015:
+      return 'es2015'
+    case ts.ScriptTarget.ES2016:
+      return 'es2016'
+    case ts.ScriptTarget.ES2017:
+      return 'es2017'
+    case ts.ScriptTarget.ES2018:
+      return 'es2018'
+    case ts.ScriptTarget.ES2019:
+      return 'es2019'
+    case ts.ScriptTarget.ES2020:
+      return 'es2020'
+    case ts.ScriptTarget.ES2021:
+      return 'es2021'
+    case ts.ScriptTarget.ES2022:
+    case ts.ScriptTarget.ESNext:
+    case ts.ScriptTarget.Latest:
+      return 'es2022'
+    case ts.ScriptTarget.JSON:
+      return 'es5'
   }
+}
 
-  if (compilerOptions.sourceMap) {
-    sourceMaps = true;
+/**
+ * Converts a TypeScript module kind to a string representation.
+ * @param moduleKind - The TypeScript module kind.
+ * @returns The string representation of the module kind.
+ */
+export function toModule(moduleKind: ts.ModuleKind) {
+  switch (moduleKind) {
+    case ts.ModuleKind.CommonJS:
+      return 'commonjs'
+    case ts.ModuleKind.UMD:
+      return 'umd'
+    case ts.ModuleKind.AMD:
+      return 'amd'
+    case ts.ModuleKind.ES2015:
+    case ts.ModuleKind.ES2020:
+    case ts.ModuleKind.ES2022:
+    case ts.ModuleKind.ESNext:
+    case ts.ModuleKind.Node16:
+    case ts.ModuleKind.NodeNext:
+    case ts.ModuleKind.None:
+      return 'es6'
+    case ts.ModuleKind.System:
+      throw new TypeError('Do not support system kind module')
   }
+}
+
+/**
+ * Formats the paths object by resolving each path relative to the base URL.
+ * @param paths - The paths object to be formatted.
+ * @param baseUrl - The base URL to resolve the paths against.
+ * @returns The formatted paths object with resolved paths.
+ */
+export function formatPaths(paths = {}, baseUrl: string) {
+  return Object
+    .entries(paths)
+    .reduce((paths, [key, value]) => {
+      paths![key] = (value as string[] ?? []).map((path) => resolve(baseUrl, path));
+      return paths;
+    }, {} as Record<string, string[]>);
+}
+
+/**
+ * Converts TypeScript compiler options to SWC configuration options.
+ * 
+ * @param options - TypeScript compiler options.
+ * @returns SWC configuration options.
+ */
+export function convertSWCConfig(options: ts.CompilerOptions): Options {
+  const target = options.target ?? ts.ScriptTarget.ES2018;
 
   return {
     swcrc: false,
@@ -67,60 +134,49 @@ function convertSWCOptions(compilerOptions: any): Options {
     isModule: true,
     configFile: false,
     cwd: process.cwd(),
-    inlineSourcesContent: true,
-    sourceMaps,
+    sourceMaps: options.sourceMap && options.inlineSourceMap ? 'inline' : Boolean(options.sourceMap),
+    module: {
+      noInterop: !options.esModuleInterop,
+      type: toModule(options.module ?? ts.ModuleKind.ES2015)!,
+      strictMode: options.strict || options.alwaysStrict || false,
+    },
     jsc: {
       keepClassNames: true,
-      baseUrl: compilerOptions.baseUrl,
-      target: compilerOptions.target.toLowerCase(),
+      externalHelpers: false,
+      target: toTsTarget(target),
+      baseUrl: resolve(options.baseUrl ?? './'),
+      paths: formatPaths(options.paths, options.baseUrl ?? './') as any,
       parser: {
+        tsx: !!options.jsx,
+        dynamicImport: true,
         syntax: 'typescript',
-        decorators: compilerOptions.experimentalDecorators,
-        dynamicImport: compilerOptions.dynamicImport,
+        decorators: options.experimentalDecorators ?? false,
       },
       transform: {
-        legacyDecorator: compilerOptions.experimentalDecorators,
-        decoratorMetadata: compilerOptions.emitDecoratorMetadata,
+        legacyDecorator: true,
+        decoratorMetadata: options.emitDecoratorMetadata ?? false,
       },
       minify: {
         compress: false,
-        mangle: false,
+        mangle: false
       },
     },
-    module: {
-      type: 'commonjs',
-      noInterop: !(compilerOptions.esModuleInterop ?? true),
-    },
   };
 }
 
-function fileExtensions(compilerOptions: CompilerOptions) {
-  const extensions = ['ts', 'tsx'];
+/**
+ * Loads the configuration from the specified path.
+ * @param path - The path to the configuration file.
+ * @returns The loaded configuration object.
+ */
+export function loadConfig(path: string) {
+  const { compilerOptions, config, fileNames: compileFiles } = loadTSConfig(path);
+  const swc = convertSWCConfig(compilerOptions);
 
-  if (compilerOptions?.allowJs) {
-    extensions.concat(['js', 'jsx']);
-  }
+  const include = createDirGlob(config.include ?? ['./']);
+  const exclude = createDirGlob(config.exclude ?? ['node_modules']);
+  const outDir = compilerOptions.outDir ?? 'dist';
+  const staticFiles = createFileGlob(include, compileFiles);
 
-  if (compilerOptions?.resolveJsonModule) {
-    extensions.push('json');
-  }
-
-  return extensions;
-}
-
-export function loadConfig(fileName: string) {
-  const options = loadFile(fileName);
-
-  validateTarget(options?.compilerOptions?.target);
-
-  const compilerOptions = convertCompilerOptions(options?.compilerOptions);
-  const swcOptions = convertSWCOptions(options?.compilerOptions);
-  const extensions = fileExtensions(compilerOptions);
-
-  return {
-    swcOptions,
-    compilerOptions,
-    include: createDirGlob(options.include ?? ['./'], extensions),
-    exclude: createDirGlob(options.exclude ?? ['node_modules']),
-  };
+  return { swc, outDir, include, exclude, staticFiles, compilerOptions, compileFiles };
 }

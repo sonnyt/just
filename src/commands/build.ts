@@ -1,10 +1,9 @@
 import color from 'colors/safe';
 
-import { loadConfig } from '../libs/config';
-import { compileFiles, replaceAliasPaths } from '../libs/compiler';
-import { error, info } from '../utils/logger';
-import { checkFiles } from '../libs/typechecker';
-import { createFileGlob, findConfigPath } from '../utils/file';
+import * as log from '../utils/logger';
+import { resolveConfigPath, loadConfig } from '../libs/config';
+import { cleanOutDir, compileFiles, copyStaticFiles } from '../libs/swc';
+import { checkFiles } from '../libs/typescript';
 
 interface Options {
   transpileOnly: boolean;
@@ -14,38 +13,43 @@ interface Options {
   debug: boolean;
 }
 
-export default async function (filePaths: string, options: Options) {
+export default async function (filePath: string, options: Options) {
   if (options.debug) {
-    info('debugger is on');
+    process.env.JUST_DEBUG = 'TRUE';
+    log.info('debugger is on');
   }
 
   if (!options.color) {
     color.disable();
   }
 
-  try {
-    const configPath = findConfigPath(options.config);
-    const config = loadConfig(configPath);
+  const configPath = resolveConfigPath(options.config);
+  const config = loadConfig(configPath);
+  const compilablePaths = filePath ? [filePath] : config.compileFiles;
+  const copyablePaths = config.staticFiles;
 
-    const paths = filePaths ? [filePaths] : config.include;
-    const fileNames = createFileGlob(paths, config.exclude);
+  if (!options.transpileOnly) {
+    const time = log.timer();
+    time.start('type checking...');
 
-    if (!options.transpileOnly) {
-      checkFiles(fileNames, config.compilerOptions);
-    }
+    const typeCheckError = checkFiles(compilablePaths, config.compilerOptions);
 
-    const outDir = options.outDir ?? config.compilerOptions.outDir ?? 'dist';
+    time.end('type check');
 
-    compileFiles(fileNames, config.swcOptions, outDir);
-
-    const hasPaths = Object.keys(config.compilerOptions.paths ?? {}).length > 0;
-
-    if (hasPaths) {
-      await replaceAliasPaths(configPath, outDir);
-    }
-  } catch (err) {
-    if (options.debug) {
-      error(err);
+    if (typeCheckError) {
+      return;
     }
   }
+
+  const time = log.timer();
+  time.start('building...');
+
+  await cleanOutDir(config.outDir);
+
+  await Promise.all([
+    compileFiles(compilablePaths, config.outDir, config.swc),
+    copyStaticFiles(copyablePaths, config.outDir),
+  ]);
+
+  time.end('build');
 }
