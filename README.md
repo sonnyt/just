@@ -100,7 +100,7 @@ node -r @sonnyt/just/register myscript.ts
 Please note that runner does not support type checking.
 
 ## Default Config File
-Just automatically finds and loads `tsconfig.json` or `jsconfig.json`. By default, this search is performed relative to the entrypoint script. If neither file is found nor the file is not provided as an argument. Just falls back to using default settings.
+Just automatically finds and loads `tsconfig.json` or `jsconfig.json`. By default, this search is performed relative to the entrypoint script. If neither file is found nor the file is not provided as an argument. Just falls back to using default settings shown below.
 
 ```JSON
 {
@@ -110,6 +110,7 @@ Just automatically finds and loads `tsconfig.json` or `jsconfig.json`. By defaul
     "moduleResolution": "Node",
     "inlineSourceMap": true,
     "strict": true,
+    "baseUrl": "./",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "esModuleInterop": true,
@@ -118,8 +119,12 @@ Just automatically finds and loads `tsconfig.json` or `jsconfig.json`. By defaul
     "outDir": "dist",
     "paths": {}
   },
-  "include": ["./"],
-  "exclude": ["node_modules"]
+  "include": [
+    "./"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }
 ```
 
@@ -140,12 +145,15 @@ Just REPL enables you to execute TypeScript files on Node.js directly without pr
 Out of the box, Just supports build and runtime path aliases. All output file alias imports are replaced with relative paths.
 
 ### What happens to my non-JavaScript/TypeScript files?
-If your source directory includes noncompilable files (i.e., JSON, SVG, etc.), Just automatically copies them to your output directory.
+If your source directory includes non-compilable files (i.e., JSON, SVG, etc.), Just automatically copies them into your output directory.
+
+### How can I help?
+If you would like to contribute, please see the issues labeled as [help-wanted](https://github.com/sonnyt/just/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22).
 
 ## Roadmap
-- Build watch option
-- Init option - copy over the default config file to the working directory
-- [TypeScript ESLint](https://typescript-eslint.io/) support
+- Build watch option [#7](https://github.com/sonnyt/just/issues/7)
+- Init option - copy over the default config file to the working directory [#5](https://github.com/sonnyt/just/issues/5)
+- [TypeScript ESLint](https://typescript-eslint.io/) support [#6](https://github.com/sonnyt/just/issues/6)
 - [Prettier](https://www.npmjs.com/package/prettier-eslint) support
 - REPL ES module support
 - ~~`jsconfig.json` support~~
