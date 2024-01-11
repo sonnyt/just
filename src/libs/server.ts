@@ -41,6 +41,22 @@ export function getOptions(JUST_TSCONFIG: string, port?: string | number) {
 }
 
 /**
+ * Loads the package.json file from the current working directory.
+ * @returns The content of the package.json file, or undefined if it cannot be loaded.
+ */
+export function loadPackageJson() {
+  const path = resolve(process.cwd(), 'package.json');
+
+  let content;
+
+  try {
+    content = require(path);
+  } catch (error) { }
+
+  return content;
+}
+
+/**
  * Resolves the entry path for the server.
  * 
  * @param path - Optional path to the entry file.
@@ -53,9 +69,11 @@ export function resolveEntryPath(path?: string) {
     return resolve(process.cwd(), path);
   }
 
-  if (process.env.npm_package_main) {
-    log.debug(`using main entry file from package.json: ${process.env.npm_package_main}`);
-    return resolve(process.cwd(), process.env.npm_package_main);
+  const packageJson = loadPackageJson();
+
+  if (packageJson?.main) {
+    log.debug(`using main entry file from package.json: ${packageJson.main}`);
+    return resolve(process.cwd(), packageJson.main);
   }
 
   log.error('entry path is not provided');
