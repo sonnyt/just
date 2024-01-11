@@ -1,6 +1,5 @@
 import ts from 'typescript';
 
-import { dirname } from 'path';
 import * as log from '../utils/logger';
 
 /**
@@ -11,7 +10,7 @@ import * as log from '../utils/logger';
  */
 export function loadTSConfig(path: string) {
   const { config } = ts.readConfigFile(path, ts.sys.readFile);
-  const { options: compilerOptions, fileNames, errors } = ts.parseJsonConfigFileContent(config, ts.sys, dirname(path));
+  const { options: compilerOptions, fileNames, errors } = ts.parseJsonConfigFileContent(config, ts.sys, process.cwd());
 
   if (errors.length) {
     log.error('failed to load tsconfig.json');

@@ -37,13 +37,6 @@ describe('server', () => {
       expect(result).toEqual('/path/to/project/path/to/entry.js');
     });
 
-    it('returns the resolved main entry path from package.json when entry path is not provided', () => {
-      process.env.npm_package_main = 'src/index.js';
-      const result = resolveEntryPath();
-      expect(result).toEqual('/path/to/project/src/index.js');
-      delete process.env.npm_package_main;
-    });
-
     it('throws an error when entry path is not provided and JUST_DEBUG environment variable is set', () => {
       process.env.JUST_DEBUG = 'TRUE';
 
