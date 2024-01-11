@@ -1,4 +1,4 @@
-# Just ![GitHub tag (latest SemVer pre-release)](https://img.shields.io/github/v/tag/sonnyt/just?include_prereleases) ![GitHub](https://img.shields.io/github/license/sonnyt/just)
+# Just ![GitHub tag (latest SemVer pre-release)](https://img.shields.io/github/v/tag/sonnyt/just?include_prereleases) ![NPM Version](https://img.shields.io/npm/v/%40sonnyt%2Fjust) ![GitHub](https://img.shields.io/github/license/sonnyt/just) ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/sonnyt/just/test.yml)
 Zero config TypeScript build and development toolkit.
 
 ## Features
